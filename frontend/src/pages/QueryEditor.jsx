@@ -9,10 +9,13 @@ export default function QueryEditor() {
 
   async function handleRun() {
    setLoading(true)
-   await new Promise(resolve => setTimeout(resolve, 2000))
    try {
     const response = await executeQuery(sql)
-    setResults(response.result.rows)
+    if (response.result.error) {
+     throw new Error(response.result.error)
+    }
+
+    setResults(response.result.rows || [])
 
     setLoading(false)
 
@@ -33,7 +36,10 @@ export default function QueryEditor() {
 
     setMessage({
       type: "error",
-      text: "Failed to execute query."
+      text:
+      error.response?.data?.error ||
+      error.message ||
+      "Failed to execute query."
     })
 
     window.setTimeout(() => setMessage(null), 3000)
