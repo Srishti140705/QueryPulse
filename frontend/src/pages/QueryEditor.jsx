@@ -111,7 +111,7 @@ export default function QueryEditor() {
     {results.length === 0 ? (
 
       <div className="p-8 text-center text-[var(--muted)]">
-        No query results yet.
+        No records found. Execute a SELECT query to display results.
       </div>
 
     ) : (
