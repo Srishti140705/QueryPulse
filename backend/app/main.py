@@ -1,3 +1,4 @@
+from fastapi.middleware.cors import CORSMiddleware
 from app.database import get_connection, close_connection
 
 from pydantic import BaseModel
@@ -13,6 +14,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class QueryRequest(BaseModel):
     query: str

@@ -1,13 +1,36 @@
+import { executeQuery } from "../services/queryService";
 import React, { useState } from 'react'
 
 export default function QueryEditor() {
   const [sql, setSql] = useState('SELECT id, name, email FROM users WHERE active = 1 ORDER BY last_login DESC;')
   const [message, setMessage] = useState(null)
 
-  function handleRun() {
-    setMessage({ type: 'info', text: 'Run query is disabled for this demo.' })
+  async function handleRun() {
+  try {
+    const response = await executeQuery(sql)
+
+    console.log("Backend Response:", response)
+
+    setMessage({
+      type: "success",
+      text: "Query executed successfully."
+    })
+
     window.setTimeout(() => setMessage(null), 3000)
+
+  } catch (error) {
+
+    console.error(error)
+
+    setMessage({
+      type: "error",
+      text: "Failed to execute query."
+    })
+
+    window.setTimeout(() => setMessage(null), 3000)
+
   }
+}
 
   function handleFormat() {
     setMessage({ type: 'success', text: 'Formatted query successfully.' })
