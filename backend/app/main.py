@@ -1,8 +1,16 @@
+from app.database import get_connection, close_connection
+
 from pydantic import BaseModel
 from fastapi import FastAPI
 from app.api.parser import SQLParser
 from app.api.analyzer import QueryAnalyzer
 from app.api.query_executor import QueryExecutor
+
+from dotenv import load_dotenv
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")
 
 app = FastAPI()
 
@@ -39,6 +47,18 @@ def home():
     return {
         "message": "Welcome to QueryPulse!"
     }
+
+@app.get("/db-test")
+def db_test():
+    conn = None
+    try:
+        conn = get_connection()
+        return {"message": "Database connected successfully!"}
+    except Exception as e:
+        return {"error": str(e)}
+    finally:
+        if conn:
+            close_connection(conn)
 
 @app.get("/health")
 def health():

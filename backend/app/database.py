@@ -4,11 +4,11 @@ This module reads connection details from environment variables and
 provides simple helpers to open and close a connection.
 
 Environment variables used:
-- MYSQL_HOST (required)
-- MYSQL_PORT (optional, defaults to 3306)
-- MYSQL_USER (required)
-- MYSQL_PASSWORD (required)
-- MYSQL_DATABASE (required)
+MYSQL_HOST=localhost
+MYSQL_PORT=3306
+MYSQL_USER=root
+MYSQL_PASSWORD=roo123
+MYSQL_DATABASE=querypulse
 - MYSQL_CONNECT_TIMEOUT (optional, seconds)
 
 Functions:
