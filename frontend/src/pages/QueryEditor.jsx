@@ -5,11 +5,16 @@ export default function QueryEditor() {
   const [sql, setSql] = useState('SELECT id, name, email FROM users WHERE active = 1 ORDER BY last_login DESC;')
   const [message, setMessage] = useState(null)
   const [results, setResults] = useState([])
+  const [loading, setLoading] = useState(false)
 
   async function handleRun() {
-  try {
+   setLoading(true)
+   await new Promise(resolve => setTimeout(resolve, 2000))
+   try {
     const response = await executeQuery(sql)
     setResults(response.result.rows)
+
+    setLoading(false)
 
     console.log("Backend Response:", response)
 
@@ -21,6 +26,8 @@ export default function QueryEditor() {
     window.setTimeout(() => setMessage(null), 3000)
 
   } catch (error) {
+
+    setLoading(false)
 
     console.error(error)
 
@@ -52,7 +59,12 @@ export default function QueryEditor() {
 
             <div className="flex flex-wrap gap-3">
               <button onClick={handleFormat} className="rounded-3xl bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--text)] hover:bg-[var(--panel)]">Format</button>
-              <button onClick={handleRun} className="rounded-3xl btn-accent px-4 py-2 text-sm font-semibold">Run query</button>
+              <button onClick={handleRun} 
+              disabled={loading}
+              className="rounded-3xl btn-accent px-4 py-2 text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+              {loading ? "Running..." : "Run query"}
+              </button>
               <button onClick={() => setSql('')} className="rounded-3xl bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--text)] hover:bg-[var(--panel)]">Clear</button>
             </div>
           </div>
