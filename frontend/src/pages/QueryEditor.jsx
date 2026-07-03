@@ -4,10 +4,12 @@ import React, { useState } from 'react'
 export default function QueryEditor() {
   const [sql, setSql] = useState('SELECT id, name, email FROM users WHERE active = 1 ORDER BY last_login DESC;')
   const [message, setMessage] = useState(null)
+  const [results, setResults] = useState([])
 
   async function handleRun() {
   try {
     const response = await executeQuery(sql)
+    setResults(response.result.rows)
 
     console.log("Backend Response:", response)
 
@@ -81,20 +83,75 @@ export default function QueryEditor() {
 
       <aside className="space-y-6">
         <section className="rounded-[2rem] border border-[var(--border)] bg-[var(--panel)] p-6 shadow-glow">
-          <p className="text-sm uppercase tracking-[0.3em] text-[var(--accent)]">Results preview</p>
-          <div className="mt-6 rounded-[1.5rem] bg-[var(--surface)]/85 p-5">
-            <div className="grid grid-cols-[1.5fr_0.8fr_0.8fr] gap-4 text-xs uppercase tracking-[0.25em] text-[var(--muted)]">
-              <span>Column</span>
-              <span>Type</span>
-              <span>Status</span>
-            </div>
-            <div className="mt-4 space-y-3 text-sm text-[var(--text)]">
-              <ResultRow column="id" type="INT" status="good" />
-              <ResultRow column="name" type="VARCHAR" status="good" />
-              <ResultRow column="email" type="VARCHAR" status="review" />
-            </div>
-          </div>
-        </section>
+
+  <p className="text-sm uppercase tracking-[0.3em] text-[var(--accent)]">
+    Query Results
+  </p>
+
+  <div className="mt-6 overflow-x-auto rounded-[1.5rem] border border-[var(--border)]">
+
+    {results.length === 0 ? (
+
+      <div className="p-8 text-center text-[var(--muted)]">
+        No query results yet.
+      </div>
+
+    ) : (
+
+      <table className="min-w-full">
+
+        <thead className="bg-[var(--surface)]">
+
+          <tr>
+
+            {Object.keys(results[0]).map((column) => (
+
+              <th
+                key={column}
+                className="px-4 py-3 text-left text-xs uppercase tracking-wider border-b border-[var(--border)]"
+              >
+                {column}
+              </th>
+
+            ))}
+
+          </tr>
+
+        </thead>
+
+        <tbody>
+
+          {results.map((row, index) => (
+
+            <tr
+              key={index}
+              className="hover:bg-[var(--surface)]/70"
+            >
+
+              {Object.values(row).map((value, i) => (
+
+                <td
+                  key={i}
+                  className="px-4 py-3 border-b border-[var(--border)] text-sm"
+                >
+                  {String(value)}
+                </td>
+
+              ))}
+
+            </tr>
+
+          ))}
+
+        </tbody>
+
+      </table>
+
+    )}
+
+  </div>
+
+</section>
 
         <section className="rounded-[2rem] border border-[var(--border)] bg-[var(--panel)] p-6 shadow-glow">
           <p className="text-sm uppercase tracking-[0.3em] text-[var(--accent)]">Quick reference</p>
