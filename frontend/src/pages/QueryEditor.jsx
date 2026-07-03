@@ -194,17 +194,7 @@ function PanelCard({ title, description }) {
   )
 }
 
-function ResultRow({ column, type, status }) {
-  return (
-    <div className="grid grid-cols-[1.5fr_0.8fr_0.8fr] gap-4 rounded-3xl bg-[var(--surface)]/85 px-4 py-3">
-      <span>{column}</span>
-      <span>{type}</span>
-      <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${status === 'good' ? 'bg-[var(--success)]/15 text-[var(--success)]' : 'bg-[#F6B37A]/15 text-[#D98C95]'}`}>
-        {status}
-      </span>
-    </div>
-  )
-}
+
 
 function ReferenceItem({ label, value }) {
   return (
