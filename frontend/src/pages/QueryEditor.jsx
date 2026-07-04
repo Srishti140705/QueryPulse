@@ -116,9 +116,9 @@ export default function QueryEditor() {
 
     ) : (
 
-      <table className="min-w-full">
+      <table className="min-w-full border-collapse">
 
-        <thead className="bg-[var(--surface)]">
+        <thead className="sticky top-0bg-[var(--surface)] z-10">
 
           <tr>
 
@@ -126,7 +126,7 @@ export default function QueryEditor() {
 
               <th
                 key={column}
-                className="px-4 py-3 text-left text-xs uppercase tracking-wider border-b border-[var(--border)]"
+                className="px-5 py-3 text-left text-xs uppercase tracking-wider border-b border-[var(--border)] font-semibold"
               >
                 {column}
               </th>
@@ -143,14 +143,14 @@ export default function QueryEditor() {
 
             <tr
               key={index}
-              className="hover:bg-[var(--surface)]/70"
+              className={`${index % 2 ===0 ? "bg-[var(--panel)]" : "bg-var(--surface)"} hover: bg-[var(--accent)]/10 transition-colors`}
             >
 
               {Object.values(row).map((value, i) => (
 
                 <td
                   key={i}
-                  className="px-4 py-3 border-b border-[var(--border)] text-sm"
+                  className="px-5 py-3 border-b border-[var(--border)] text-sm whitespace-nowrap"
                 >
                   {String(value)}
                 </td>
