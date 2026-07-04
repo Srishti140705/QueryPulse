@@ -1,5 +1,5 @@
 import { executeQuery } from "../services/queryService";
-import React, { useState } from 'react'
+import React, { useEffect, useState } from "react";
 
 export default function QueryEditor() {
   const [sql, setSql] = useState('SELECT id, name, email FROM users WHERE active = 1 ORDER BY last_login DESC;')
@@ -7,6 +7,15 @@ export default function QueryEditor() {
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
   const [history, setHistory] = useState([])
+  useEffect(() => {
+
+  const savedHistory = localStorage.getItem("queryHistory")
+
+  if (savedHistory) {
+    setHistory(JSON.parse(savedHistory))
+  }
+
+}, [])
 
   async function handleRun() {
    setLoading(true)
@@ -24,7 +33,14 @@ export default function QueryEditor() {
     return prevHistory
   }
 
-  return [sql, ...prevHistory].slice(0, 10)
+  const updatedHistory = [sql, ...prevHistory].slice(0, 10)
+
+  localStorage.setItem(
+    "queryHistory",
+    JSON.stringify(updatedHistory)
+  )
+
+  return updatedHistory
 
 })
 
