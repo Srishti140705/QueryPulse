@@ -6,6 +6,7 @@ export default function QueryEditor() {
   const [message, setMessage] = useState(null)
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
+  const [history, setHistory] = useState([])
 
   async function handleRun() {
    setLoading(true)
@@ -17,6 +18,17 @@ export default function QueryEditor() {
 
     setResults(response.result.rows || [])
 
+    setHistory((prevHistory) => {
+
+  if (prevHistory[0] === sql) {
+    return prevHistory
+  }
+
+  return [sql, ...prevHistory].slice(0, 10)
+
+})
+
+console.log("History Updated")
     setLoading(false)
 
     console.log("Backend Response:", response)
@@ -172,13 +184,40 @@ export default function QueryEditor() {
 </section>
 
         <section className="rounded-[2rem] border border-[var(--border)] bg-[var(--panel)] p-6 shadow-glow">
-          <p className="text-sm uppercase tracking-[0.3em] text-[var(--accent)]">Quick reference</p>
-          <div className="mt-5 grid gap-3 text-sm text-[var(--text)]">
-            <ReferenceItem label="Run query" value="Ctrl + Enter" />
-            <ReferenceItem label="Format SQL" value="Ctrl + Shift + F" />
-            <ReferenceItem label="Toggle sidebar" value="Ctrl + B" />
-          </div>
-        </section>
+
+  <p className="text-sm uppercase tracking-[0.3em] text-[var(--accent)]">
+    Query History
+  </p>
+
+  <div className="mt-5 space-y-3">
+
+    {history.length === 0 ? (
+
+      <p className="text-sm text-[var(--muted)]">
+        No queries executed yet.
+      </p>
+
+    ) : (
+
+      history.map((item, index) => (
+
+        <div
+  key={index}
+  onClick={() => setSql(item)}
+  className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 cursor-pointer hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 transition-all"
+>
+          <code className="block truncate text-sm">
+            {item}
+          </code>
+        </div>
+
+      ))
+
+    )}
+
+  </div>
+
+</section>
       </aside>
     </div>
   )
