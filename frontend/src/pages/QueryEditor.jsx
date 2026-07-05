@@ -7,6 +7,7 @@ export default function QueryEditor() {
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
   const [history, setHistory] = useState([])
+  const [favorites, setFavorites] = useState([])
   useEffect(() => {
 
   const savedHistory = localStorage.getItem("queryHistory")
@@ -27,22 +28,7 @@ export default function QueryEditor() {
 
     setResults(response.result.rows || [])
 
-    setHistory((prevHistory) => {
-
-  if (prevHistory[0] === sql) {
-    return prevHistory
-  }
-
-  const updatedHistory = [sql, ...prevHistory].slice(0, 10)
-
-  localStorage.setItem(
-    "queryHistory",
-    JSON.stringify(updatedHistory)
-  )
-
-  return updatedHistory
-
-})
+    
 
 console.log("History Updated")
     setLoading(false)
