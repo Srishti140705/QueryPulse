@@ -18,6 +18,18 @@ export default function QueryEditor() {
 
 }, [])
 
+useEffect(() => {
+
+  const savedFavorites = localStorage.getItem("favoriteQueries")
+
+  if (savedFavorites) {
+    setFavorites(JSON.parse(savedFavorites))
+  }
+
+}, [])
+
+
+
   async function handleRun() {
    setLoading(true)
    try {
@@ -205,12 +217,75 @@ console.log("History Updated")
 
         <div
   key={index}
-  onClick={() => setSql(item)}
-  className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 cursor-pointer hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 transition-all"
+  className="flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3"
 >
+
+  <code
+    onClick={() => setSql(item)}
+    className="block flex-1 truncate text-sm cursor-pointer"
+  >
+    {item}
+  </code>
+
+  <button
+    onClick={() => {
+
+    const updatedFavorites = favorites.includes(item)
+  ? favorites.filter(query => query !== item)
+  : [...favorites, item]
+
+setFavorites(updatedFavorites)
+
+localStorage.setItem(
+  "favoriteQueries",
+  JSON.stringify(updatedFavorites)
+)
+
+    }}
+    className="ml-3 text-xl hover:scale-110 transition"
+  >
+
+    {favorites.includes(item) ? "⭐" : "☆"}
+
+  </button>
+
+</div>
+
+      ))
+
+    )}
+
+  </div>
+
+</section>
+<section className="rounded-[2rem] border border-[var(--border)] bg-[var(--panel)] p-6 shadow-glow">
+
+  <p className="text-sm uppercase tracking-[0.3em] text-[var(--accent)]">
+    ⭐ Favorite Queries
+  </p>
+
+  <div className="mt-5 space-y-3">
+
+    {favorites.length === 0 ? (
+
+      <p className="text-sm text-[var(--muted)]">
+        No favorite queries yet.
+      </p>
+
+    ) : (
+
+      favorites.map((item, index) => (
+
+        <div
+          key={index}
+          onClick={() => setSql(item)}
+          className="cursor-pointer rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 transition-all"
+        >
+
           <code className="block truncate text-sm">
             {item}
           </code>
+
         </div>
 
       ))
