@@ -128,9 +128,19 @@ console.log("History Updated")
       <aside className="space-y-6">
         <section className="rounded-[2rem] border border-[var(--border)] bg-[var(--panel)] p-6 shadow-glow">
 
+  <div className="flex items-center justify-between">
+
   <p className="text-sm uppercase tracking-[0.3em] text-[var(--accent)]">
     Query Results
   </p>
+
+  <span className="rounded-full bg-[var(--surface)] px-3 py-1 text-xs text-[var(--muted)]">
+
+    {results.length} {results.length === 1 ? "row" : "rows"}
+
+  </span>
+
+</div>
 
   <div className="mt-6 overflow-x-auto rounded-[1.5rem] border border-[var(--border)]">
 
