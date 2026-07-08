@@ -8,6 +8,7 @@ export default function QueryEditor() {
   const [loading, setLoading] = useState(false)
   const [history, setHistory] = useState([])
   const [favorites, setFavorites] = useState([])
+  const [executionTime, setExecutionTime] = useState(0)
   useEffect(() => {
 
   const savedHistory = localStorage.getItem("queryHistory")
@@ -32,6 +33,7 @@ useEffect(() => {
 
   async function handleRun() {
    setLoading(true)
+   
    try {
     const response = await executeQuery(sql)
     if (response.result.error) {
@@ -39,6 +41,11 @@ useEffect(() => {
     }
 
     setResults(response.result.rows || [])
+    const endTime = performance.now()
+
+setExecutionTime(
+  Math.round(endTime - startTime)
+)
 
     
 
@@ -135,11 +142,8 @@ console.log("History Updated")
   </p>
 
   <span className="rounded-full bg-[var(--surface)] px-3 py-1 text-xs text-[var(--muted)]">
-
-    {results.length} {results.length === 1 ? "row" : "rows"}
-
-  </span>
-
+  {results.length} {results.length === 1 ? "row" : "rows"} • {executionTime === 0 ? "--" : executionTime} ms
+</span>
 </div>
 
   <div className="mt-6 overflow-x-auto rounded-[1.5rem] border border-[var(--border)]">
