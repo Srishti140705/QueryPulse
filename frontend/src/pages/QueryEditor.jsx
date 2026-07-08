@@ -14,6 +14,7 @@ export default function QueryEditor() {
   key: null,
   direction: "asc",
 })
+const [analytics, setAnalytics] = useState([])
   useEffect(() => {
 
   const savedHistory = localStorage.getItem("queryHistory")
@@ -51,10 +52,35 @@ const endTime = performance.now()
 
 const elapsed = endTime - startTime
 
-setExecutionTime(
-  elapsed < 1 ? "< 1" : Math.round(elapsed)
-)
+let displayTime
 
+if (elapsed < 1) {
+  displayTime = "< 1 ms"
+} else if (elapsed < 1000) {
+  displayTime = `${Math.round(elapsed)} ms`
+} else {
+  displayTime = `${(elapsed / 1000).toFixed(2)} s`
+}
+
+setExecutionTime(displayTime)
+
+const executionValue = elapsed
+
+setAnalytics(prev => [
+  ...prev,
+  {
+    query: sql,
+    executionTime: executionValue,
+    rowsReturned: response.result.rows.length,
+    queryType: sql.trim().split(" ")[0].toUpperCase(),
+    timestamp: new Date().toLocaleTimeString(),
+  },
+])
+
+setHistory(prev => [
+  sql,
+  ...prev.filter(item => item !== sql)
+])
     
 
 console.log("History Updated")
@@ -143,7 +169,7 @@ const filteredResults = [...results]
     return 0
 
   })
-
+console.log(analytics)
   return (
     <div className="max-w-7xl mx-auto grid gap-6 xl:grid-cols-[1.7fr_0.9fr]">
       <div className="space-y-6">
@@ -208,7 +234,7 @@ const filteredResults = [...results]
   </p>
 
   <span className="rounded-full bg-[var(--surface)] px-3 py-1 text-xs text-[var(--muted)]">
-  {results.length} {results.length === 1 ? "row" : "rows"} • {executionTime || "--"} ms
+  {results.length} {results.length === 1 ? "row" : "rows"} • {executionTime || "--"}
 </span>
 </div>
 <div className="mt-4">
