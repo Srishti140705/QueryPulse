@@ -9,6 +9,7 @@ export default function QueryEditor() {
   const [history, setHistory] = useState([])
   const [favorites, setFavorites] = useState([])
   const [executionTime, setExecutionTime] = useState(0)
+  const [searchTerm, setSearchTerm] = useState("")
   useEffect(() => {
 
   const savedHistory = localStorage.getItem("queryHistory")
@@ -89,7 +90,7 @@ console.log("History Updated")
   }
   function exportToCSV() {
 
-  if (results.length === 0) return
+  if (filteredResults.length === 0) return
 
   const headers = Object.keys(results[0]).join(",")
 
@@ -116,6 +117,12 @@ console.log("History Updated")
   URL.revokeObjectURL(url)
 
 }
+const filteredResults = results.filter((row) =>
+  Object.values(row)
+    .join(" ")
+    .toLowerCase()
+    .includes(searchTerm.toLowerCase())
+)
 
   return (
     <div className="max-w-7xl mx-auto grid gap-6 xl:grid-cols-[1.7fr_0.9fr]">
@@ -184,6 +191,15 @@ console.log("History Updated")
   {results.length} {results.length === 1 ? "row" : "rows"} • {executionTime || "--"} ms
 </span>
 </div>
+<div className="mt-4">
+  <input
+    type="text"
+    placeholder="Search results..."
+    value={searchTerm}
+    onChange={(e) => setSearchTerm(e.target.value)}
+    className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm outline-none focus:border-[var(--accent)]"
+  />
+</div>
 
   <div className="mt-6 overflow-x-auto rounded-[1.5rem] border border-[var(--border)]">
 
@@ -218,7 +234,7 @@ console.log("History Updated")
 
         <tbody>
 
-          {results.map((row, index) => (
+          {filteredResults.map((row, index) => (
 
             <tr
               key={index}
