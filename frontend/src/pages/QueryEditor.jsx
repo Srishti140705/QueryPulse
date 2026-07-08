@@ -33,7 +33,7 @@ useEffect(() => {
 
   async function handleRun() {
    setLoading(true)
-   
+   const startTime = performance.now()
    try {
     const response = await executeQuery(sql)
     if (response.result.error) {
@@ -41,10 +41,13 @@ useEffect(() => {
     }
 
     setResults(response.result.rows || [])
-    const endTime = performance.now()
+
+const endTime = performance.now()
+
+const elapsed = endTime - startTime
 
 setExecutionTime(
-  Math.round(endTime - startTime)
+  elapsed < 1 ? "< 1" : Math.round(elapsed)
 )
 
     
@@ -84,6 +87,35 @@ console.log("History Updated")
     setMessage({ type: 'success', text: 'Formatted query successfully.' })
     window.setTimeout(() => setMessage(null), 3000)
   }
+  function exportToCSV() {
+
+  if (results.length === 0) return
+
+  const headers = Object.keys(results[0]).join(",")
+
+  const rows = results.map(row =>
+    Object.values(row).join(",")
+  )
+
+  const csvContent = [headers, ...rows].join("\n")
+
+  const blob = new Blob([csvContent], {
+    type: "text/csv;charset=utf-8;"
+  })
+
+  const url = URL.createObjectURL(blob)
+
+  const link = document.createElement("a")
+
+  link.href = url
+
+  link.download = "query_results.csv"
+
+  link.click()
+
+  URL.revokeObjectURL(url)
+
+}
 
   return (
     <div className="max-w-7xl mx-auto grid gap-6 xl:grid-cols-[1.7fr_0.9fr]">
@@ -104,6 +136,13 @@ console.log("History Updated")
               >
               {loading ? "Running..." : "Run query"}
               </button>
+              <button
+  onClick={exportToCSV}
+  disabled={results.length === 0}
+  className="rounded-3xl bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--text)] hover:bg-[var(--panel)] disabled:opacity-50 disabled:cursor-not-allowed"
+>
+  Export CSV
+</button>
               <button onClick={() => setSql('')} className="rounded-3xl bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--text)] hover:bg-[var(--panel)]">Clear</button>
             </div>
           </div>
@@ -142,7 +181,7 @@ console.log("History Updated")
   </p>
 
   <span className="rounded-full bg-[var(--surface)] px-3 py-1 text-xs text-[var(--muted)]">
-  {results.length} {results.length === 1 ? "row" : "rows"} • {executionTime === 0 ? "--" : executionTime} ms
+  {results.length} {results.length === 1 ? "row" : "rows"} • {executionTime || "--"} ms
 </span>
 </div>
 
