@@ -1,15 +1,17 @@
 import React from 'react'
 
-function Badge({ children, color = 'bg-[var(--panel)]' }) {
+function Badge({ children, color = 'bg-[var(--surface)]' }) {
   return (
-    <span className={`inline-block px-2 py-0.5 text-xs rounded ${color} text-[var(--text)]`}>{children}</span>
+    <span className={`inline-flex rounded-lg px-2.5 py-1 font-code text-xs ${color} text-[var(--text)]`}>
+      {children}
+    </span>
   )
 }
 
 function Card({ title, children }) {
   return (
-    <div className="bg-[var(--surface)] rounded-lg p-4 shadow">
-      <h4 className="text-sm font-semibold mb-2 text-[var(--text)]">{title}</h4>
+    <div className="ide-surface h-full p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--accent)]/60">
+      <h4 className="font-heading mb-3 text-sm font-semibold text-[var(--text)]">{title}</h4>
       <div className="text-sm text-[var(--muted)]">{children}</div>
     </div>
   )
@@ -18,11 +20,10 @@ function Card({ title, children }) {
 export default function AnalysisResult({ data }) {
   if (!data) return null
 
-  // Support both /analyze response ({ parsed, analysis }) and raw parsed/analysis objects
   const parsed = data.parsed || data
   const analysis = data.analysis || data
 
-  const qtype = parsed?.query_type || '—'
+  const qtype = parsed?.query_type || '--'
   const tables = parsed?.tables || []
   const columns = parsed?.columns || []
   const where = parsed?.where_conditions || []
@@ -34,69 +35,69 @@ export default function AnalysisResult({ data }) {
   const perf = analysis?.performance_score ?? null
   const complexity = analysis?.complexity ?? null
   const warnings = analysis?.warnings || []
-  const recomendations = analysis?.recommendations || []
-  const estimated_cost = analysis?.estimated_cost || null
+  const recommendations = analysis?.recommendations || []
+  const estimatedCost = analysis?.estimated_cost || null
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-3">
         <Card title="Overview">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="mb-3 flex flex-wrap items-center gap-2">
             <Badge color="bg-[var(--accent)] text-[var(--accent-text)]">{qtype}</Badge>
-            {perf !== null && <Badge color={perf >= 75 ? 'bg-[var(--accent-soft)]' : perf >= 50 ? 'bg-[var(--panel)]' : 'bg-[var(--surface)]'}>Score: {perf}</Badge>}
-            {complexity && <Badge color="bg-[var(--panel)]">{complexity}</Badge>}
-            {estimated_cost && <Badge color="bg-[var(--panel)]">Cost: {estimated_cost}</Badge>}
+            {perf !== null && <Badge color={perf >= 75 ? 'bg-emerald-400/15 text-emerald-200' : perf >= 50 ? 'bg-[var(--surface)]' : 'bg-rose-400/15 text-rose-200'}>Score: {perf}</Badge>}
+            {complexity && <Badge>{complexity}</Badge>}
+            {estimatedCost && <Badge>Cost: {estimatedCost}</Badge>}
           </div>
 
-          <div className="text-xs text-[var(--muted)]">
-            <div><strong>Tables:</strong> {tables.length ? tables.join(', ') : '—'}</div>
-            <div><strong>Limit:</strong> {limit ?? '—'}</div>
+          <div className="font-code space-y-2 text-xs text-[var(--muted)]">
+            <div><strong className="text-[var(--text)]">Tables:</strong> {tables.length ? tables.join(', ') : '--'}</div>
+            <div><strong className="text-[var(--text)]">Limit:</strong> {limit ?? '--'}</div>
           </div>
         </Card>
 
         <Card title="Columns & Filters">
-          <div className="mb-2">
-            <strong>Columns</strong>
-            <div className="mt-1 text-xs text-[var(--muted)]">
+          <div className="mb-3">
+            <strong className="text-[var(--text)]">Columns</strong>
+            <div className="mt-2 text-xs text-[var(--muted)]">
               {columns.length ? (
-                <div className="flex flex-wrap gap-2">{columns.map((c, i) => <Badge key={i} color="bg-[var(--panel)]">{c}</Badge>)}</div>
+                <div className="flex flex-wrap gap-2">{columns.map((column, index) => <Badge key={index}>{column}</Badge>)}</div>
               ) : (
-                <span className="text-[var(--muted)]">—</span>
+                <span>--</span>
               )}
             </div>
           </div>
 
           <div>
-            <strong>WHERE</strong>
-            <div className="mt-1 text-xs text-slate-300">
-              {where.length ? where.map((w, i) => <div key={i} className="py-1">{w}</div>) : <span className="text-slate-500">—</span>}
+            <strong className="text-[var(--text)]">WHERE</strong>
+            <div className="font-code mt-2 text-xs text-[var(--muted)]">
+              {where.length ? where.map((condition, index) => <div key={index} className="py-1">{condition}</div>) : <span>--</span>}
             </div>
           </div>
         </Card>
 
         <Card title="Grouping & Ordering">
-          <div className="mb-2">
-            <strong>GROUP BY</strong>
-            <div className="mt-1 text-xs text-slate-300">{groupBy.length ? groupBy.join(', ') : '—'}</div>
+          <div className="mb-3">
+            <strong className="text-[var(--text)]">GROUP BY</strong>
+            <div className="font-code mt-2 text-xs text-[var(--muted)]">{groupBy.length ? groupBy.join(', ') : '--'}</div>
           </div>
 
           <div>
-            <strong>ORDER BY</strong>
-            <div className="mt-1 text-xs text-slate-300">{orderBy.length ? orderBy.join(', ') : '—'}</div>
+            <strong className="text-[var(--text)]">ORDER BY</strong>
+            <div className="font-code mt-2 text-xs text-[var(--muted)]">{orderBy.length ? orderBy.join(', ') : '--'}</div>
           </div>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
         <Card title={`JOINS (${joins.length})`}>
           {joins.length ? (
-            <div className="space-y-2 text-xs text-[var(--muted)]">
-              {joins.map((j, i) => (
-                <div key={i} className="p-2 bg-[var(--panel)] rounded">{j}</div>
+            <div className="space-y-2 font-code text-xs text-[var(--muted)]">
+              {joins.map((join, index) => (
+                <div key={index} className="rounded-lg bg-[var(--panel)] p-2">{join}</div>
               ))}
             </div>
           ) : (
-            <span className="text-[var(--muted)]">No joins detected</span>
+            <span>No joins detected</span>
           )}
         </Card>
 
@@ -104,35 +105,35 @@ export default function AnalysisResult({ data }) {
           <div className="text-xs text-[var(--muted)]">
             {parsed?.aliases && parsed.aliases.length ? (
               <div className="flex flex-wrap gap-2">
-                {parsed.aliases.map((a, i) => (
-                  <Badge key={i} color="bg-[var(--panel)]">{a.table} → {a.alias}</Badge>
+                {parsed.aliases.map((alias, index) => (
+                  <Badge key={index}>{alias.table} -> {alias.alias}</Badge>
                 ))}
               </div>
             ) : (
-              <span className="text-[var(--muted)]">—</span>
+              <span>--</span>
             )}
           </div>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2">
         <Card title="Warnings">
           {warnings.length ? (
-            <ul className="list-disc list-inside text-[var(--muted)] text-sm space-y-1">
-              {warnings.map((w, i) => <li key={i}>{w}</li>)}
+            <ul className="list-inside list-disc space-y-1 text-sm text-[var(--muted)]">
+              {warnings.map((warning, index) => <li key={index}>{warning}</li>)}
             </ul>
           ) : (
-            <div className="text-[var(--muted)]">No warnings</div>
+            <div>No warnings</div>
           )}
         </Card>
 
         <Card title="Recommendations">
-          {recomendations.length ? (
-            <ul className="list-disc list-inside text-[var(--muted)] text-sm space-y-1">
-              {recomendations.map((r, i) => <li key={i}>{r}</li>)}
+          {recommendations.length ? (
+            <ul className="list-inside list-disc space-y-1 text-sm text-[var(--muted)]">
+              {recommendations.map((recommendation, index) => <li key={index}>{recommendation}</li>)}
             </ul>
           ) : (
-            <div className="text-[var(--muted)]">No recommendations</div>
+            <div>No recommendations</div>
           )}
         </Card>
       </div>

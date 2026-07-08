@@ -1,5 +1,5 @@
-import { executeQuery } from "../services/queryService";
-import React, { useEffect, useState } from "react";
+import { executeQuery } from '../services/queryService'
+import React, { useEffect, useState } from 'react'
 
 export default function QueryEditor() {
   const [sql, setSql] = useState('SELECT id, name, email FROM users WHERE active = 1 ORDER BY last_login DESC;')
@@ -9,426 +9,357 @@ export default function QueryEditor() {
   const [history, setHistory] = useState([])
   const [favorites, setFavorites] = useState([])
   const [executionTime, setExecutionTime] = useState(0)
-  const [searchTerm, setSearchTerm] = useState("")
+  const [searchTerm, setSearchTerm] = useState('')
   const [sortConfig, setSortConfig] = useState({
-  key: null,
-  direction: "asc",
-})
-const [analytics, setAnalytics] = useState([])
+    key: null,
+    direction: 'asc',
+  })
+  const [analytics, setAnalytics] = useState([])
+
   useEffect(() => {
+    const savedHistory = localStorage.getItem('queryHistory')
 
-  const savedHistory = localStorage.getItem("queryHistory")
+    if (savedHistory) {
+      setHistory(JSON.parse(savedHistory))
+    }
+  }, [])
 
-  if (savedHistory) {
-    setHistory(JSON.parse(savedHistory))
-  }
+  useEffect(() => {
+    const savedFavorites = localStorage.getItem('favoriteQueries')
 
-}, [])
-
-useEffect(() => {
-
-  const savedFavorites = localStorage.getItem("favoriteQueries")
-
-  if (savedFavorites) {
-    setFavorites(JSON.parse(savedFavorites))
-  }
-
-}, [])
-
-
+    if (savedFavorites) {
+      setFavorites(JSON.parse(savedFavorites))
+    }
+  }, [])
 
   async function handleRun() {
-   setLoading(true)
-   const startTime = performance.now()
-   try {
-    const response = await executeQuery(sql)
-    if (response.result.error) {
-     throw new Error(response.result.error)
+    setLoading(true)
+    const startTime = performance.now()
+    try {
+      const response = await executeQuery(sql)
+      if (response.result.error) {
+        throw new Error(response.result.error)
+      }
+
+      setResults(response.result.rows || [])
+
+      const endTime = performance.now()
+      const elapsed = endTime - startTime
+
+      let displayTime
+
+      if (elapsed < 1) {
+        displayTime = '< 1 ms'
+      } else if (elapsed < 1000) {
+        displayTime = `${Math.round(elapsed)} ms`
+      } else {
+        displayTime = `${(elapsed / 1000).toFixed(2)} s`
+      }
+
+      setExecutionTime(displayTime)
+
+      const executionValue = elapsed
+
+      setAnalytics((prev) => [
+        ...prev,
+        {
+          query: sql,
+          executionTime: executionValue,
+          rowsReturned: response.result.rows.length,
+          queryType: sql.trim().split(' ')[0].toUpperCase(),
+          timestamp: new Date().toLocaleTimeString(),
+        },
+      ])
+
+      setHistory((prev) => [
+        sql,
+        ...prev.filter((item) => item !== sql),
+      ])
+
+      console.log('History Updated')
+      setLoading(false)
+
+      console.log('Backend Response:', response)
+
+      setMessage({
+        type: 'success',
+        text: 'Query executed successfully.',
+      })
+
+      window.setTimeout(() => setMessage(null), 3000)
+    } catch (error) {
+      setLoading(false)
+
+      console.error(error)
+
+      setMessage({
+        type: 'error',
+        text:
+          error.response?.data?.error ||
+          error.message ||
+          'Failed to execute query.',
+      })
+
+      window.setTimeout(() => setMessage(null), 3000)
     }
-
-    setResults(response.result.rows || [])
-
-const endTime = performance.now()
-
-const elapsed = endTime - startTime
-
-let displayTime
-
-if (elapsed < 1) {
-  displayTime = "< 1 ms"
-} else if (elapsed < 1000) {
-  displayTime = `${Math.round(elapsed)} ms`
-} else {
-  displayTime = `${(elapsed / 1000).toFixed(2)} s`
-}
-
-setExecutionTime(displayTime)
-
-const executionValue = elapsed
-
-setAnalytics(prev => [
-  ...prev,
-  {
-    query: sql,
-    executionTime: executionValue,
-    rowsReturned: response.result.rows.length,
-    queryType: sql.trim().split(" ")[0].toUpperCase(),
-    timestamp: new Date().toLocaleTimeString(),
-  },
-])
-
-setHistory(prev => [
-  sql,
-  ...prev.filter(item => item !== sql)
-])
-    
-
-console.log("History Updated")
-    setLoading(false)
-
-    console.log("Backend Response:", response)
-
-    setMessage({
-      type: "success",
-      text: "Query executed successfully."
-    })
-
-    window.setTimeout(() => setMessage(null), 3000)
-
-  } catch (error) {
-
-    setLoading(false)
-
-    console.error(error)
-
-    setMessage({
-      type: "error",
-      text:
-      error.response?.data?.error ||
-      error.message ||
-      "Failed to execute query."
-    })
-
-    window.setTimeout(() => setMessage(null), 3000)
-
   }
-}
 
   function handleFormat() {
     setMessage({ type: 'success', text: 'Formatted query successfully.' })
     window.setTimeout(() => setMessage(null), 3000)
   }
+
   function exportToCSV() {
+    if (filteredResults.length === 0) return
 
-  if (filteredResults.length === 0) return
+    const headers = Object.keys(results[0]).join(',')
 
-  const headers = Object.keys(results[0]).join(",")
+    const rows = results.map((row) =>
+      Object.values(row).join(','),
+    )
 
-  const rows = results.map(row =>
-    Object.values(row).join(",")
+    const csvContent = [headers, ...rows].join('\n')
+
+    const blob = new Blob([csvContent], {
+      type: 'text/csv;charset=utf-8;',
+    })
+
+    const url = URL.createObjectURL(blob)
+
+    const link = document.createElement('a')
+
+    link.href = url
+
+    link.download = 'query_results.csv'
+
+    link.click()
+
+    URL.revokeObjectURL(url)
+  }
+
+  const filteredResults = [...results]
+    .filter((row) =>
+      Object.values(row)
+        .join(' ')
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()),
+    )
+    .sort((a, b) => {
+      if (!sortConfig.key) return 0
+
+      if (a[sortConfig.key] < b[sortConfig.key]) {
+        return sortConfig.direction === 'asc' ? -1 : 1
+      }
+
+      if (a[sortConfig.key] > b[sortConfig.key]) {
+        return sortConfig.direction === 'asc' ? 1 : -1
+      }
+
+      return 0
+    })
+
+  const totalQueries = analytics.length
+
+  const averageTime =
+    analytics.length > 0
+      ? Math.round(
+        analytics.reduce((sum, item) => sum + item.executionTime, 0) /
+        analytics.length,
+      )
+      : 0
+
+  const fastestQuery =
+    analytics.length > 0
+      ? Math.round(
+        Math.min(...analytics.map((item) => item.executionTime)),
+      )
+      : 0
+
+  const slowestQuery =
+    analytics.length > 0
+      ? Math.round(
+        Math.max(...analytics.map((item) => item.executionTime)),
+      )
+      : 0
+
+  const totalRowsReturned = analytics.reduce(
+    (sum, item) => sum + item.rowsReturned,
+    0,
   )
 
-  const csvContent = [headers, ...rows].join("\n")
-
-  const blob = new Blob([csvContent], {
-    type: "text/csv;charset=utf-8;"
-  })
-
-  const url = URL.createObjectURL(blob)
-
-  const link = document.createElement("a")
-
-  link.href = url
-
-  link.download = "query_results.csv"
-
-  link.click()
-
-  URL.revokeObjectURL(url)
-
-}
-const filteredResults = [...results]
-  .filter((row) =>
-    Object.values(row)
-      .join(" ")
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase())
-  )
-  .sort((a, b) => {
-
-    if (!sortConfig.key) return 0
-
-    if (a[sortConfig.key] < b[sortConfig.key]) {
-      return sortConfig.direction === "asc" ? -1 : 1
-    }
-
-    if (a[sortConfig.key] > b[sortConfig.key]) {
-      return sortConfig.direction === "asc" ? 1 : -1
-    }
-
-    return 0
-
-  })
-console.log(analytics)
   return (
-    <div className="max-w-7xl mx-auto grid gap-6 xl:grid-cols-[1.7fr_0.9fr]">
+    <div className="mx-auto grid max-w-[1500px] gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(380px,0.85fr)]">
       <div className="space-y-6">
-        <section className="rounded-[2rem] border border-[var(--border)] bg-[var(--panel)] p-6 shadow-glow">
-          <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
-            <div>
-              <p className="text-sm uppercase tracking-[0.3em] text-[var(--accent)]">Query editor</p>
-              <h1 className="mt-3 text-3xl font-semibold">Write and preview SQL with confidence</h1>
-              <p className="mt-2 max-w-2xl text-[var(--muted)]">Compose SQL, run analysis, and inspect results in a polished, developer-friendly interface.</p>
+        <section className="ide-card ide-fade-in p-5 sm:p-6">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0">
+              <p className="font-code text-xs uppercase tracking-[0.28em] text-[var(--accent-soft)]">Query editor</p>
+              <h1 className="font-heading mt-3 text-3xl font-semibold tracking-normal text-[var(--text)]">SQL workbench</h1>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--muted)]">Compose, execute, inspect, and reuse SQL in a focused developer workspace.</p>
             </div>
 
-            <div className="flex flex-wrap gap-3">
-              <button onClick={handleFormat} className="rounded-3xl bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--text)] hover:bg-[var(--panel)]">Format</button>
-              <button onClick={handleRun} 
-              disabled={loading}
-              className="rounded-3xl btn-accent px-4 py-2 text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-              {loading ? "Running..." : "Run query"}
+            <div className="flex flex-wrap gap-2">
+              <button onClick={handleFormat} className="ide-button">Format</button>
+              <button onClick={handleRun} disabled={loading} className="ide-button-primary min-w-28">
+                {loading ? (
+                  <span className="inline-flex items-center gap-2">
+                    <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                    Running
+                  </span>
+                ) : 'Run query'}
               </button>
-              <button
-  onClick={exportToCSV}
-  disabled={results.length === 0}
-  className="rounded-3xl bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--text)] hover:bg-[var(--panel)] disabled:opacity-50 disabled:cursor-not-allowed"
->
-  Export CSV
-</button>
-              <button onClick={() => setSql('')} className="rounded-3xl bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--text)] hover:bg-[var(--panel)]">Clear</button>
+              <button onClick={exportToCSV} disabled={results.length === 0} className="ide-button">Export CSV</button>
+              <button onClick={() => setSql('')} className="ide-button">Clear</button>
             </div>
           </div>
 
-          <textarea
-            value={sql}
-            onChange={(event) => setSql(event.target.value)}
-            placeholder="Write your SQL here..."
-            rows={14}
-            className="mt-6 w-full rounded-[1.5rem] border border-[var(--border)] bg-[var(--surface)] px-5 py-4 font-mono text-sm text-[var(--text)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
-          />
+          <div className="mt-6 overflow-hidden rounded-2xl border border-[var(--border)] bg-[#0A0716] shadow-inner">
+            <div className="flex h-10 items-center justify-between border-b border-[var(--border)] bg-[var(--surface)]/80 px-4 font-code text-xs text-[var(--muted)]">
+              <span>console.sql</span>
+              <span>MySQL</span>
+            </div>
+            <textarea
+              value={sql}
+              onChange={(event) => setSql(event.target.value)}
+              placeholder="Write your SQL here..."
+              rows={16}
+              className="font-code min-h-[360px] w-full resize-y bg-transparent px-5 py-4 text-sm leading-6 text-[var(--text)] outline-none transition placeholder:text-[var(--muted)] focus:ring-2 focus:ring-inset focus:ring-[var(--accent)]/35"
+            />
+          </div>
 
-          <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="rounded-3xl bg-[var(--surface)]/75 p-4 text-sm text-[var(--muted)]">SQL dialect: MySQL • Safety mode: enabled • Timeout: 30s</div>
+          <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="ide-surface font-code px-4 py-3 text-xs text-[var(--muted)]">Dialect: MySQL / Safety: enabled / Timeout: 30s</div>
             {message && (
-              <div className={`rounded-3xl px-4 py-3 text-sm ${message.type === 'success' ? 'bg-[var(--success)]/15 text-[var(--success)]' : 'bg-[var(--surface)] text-[var(--text)]'}`}>
+              <div className={`rounded-xl px-4 py-3 text-sm transition-all duration-200 ${message.type === 'success' ? 'border border-emerald-400/20 bg-emerald-400/10 text-emerald-200' : 'border border-rose-400/20 bg-rose-400/10 text-rose-200'}`}>
                 {message.text}
               </div>
             )}
           </div>
         </section>
 
-        <section className="grid gap-6 lg:grid-cols-2">
+        <section className="grid items-stretch gap-6 lg:grid-cols-2">
           <PanelCard title="Execution plan" description="A preview of the query plan, warnings, and optimization suggestions." />
           <PanelCard title="Static analysis" description="Score, unused columns, missing indexes, and style recommendations." />
         </section>
       </div>
 
       <aside className="space-y-6">
-        <section className="rounded-[2rem] border border-[var(--border)] bg-[var(--panel)] p-6 shadow-glow">
+        <section className="ide-card ide-fade-in p-5 sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-code text-xs uppercase tracking-[0.28em] text-[var(--accent-soft)]">Query results</p>
+              <h2 className="font-heading mt-2 text-xl font-semibold">Result set</h2>
+            </div>
+            <span className="ide-surface font-code px-3 py-2 text-xs text-[var(--muted)]">
+              {results.length} {results.length === 1 ? 'row' : 'rows'} / {executionTime || '--'}
+            </span>
+          </div>
 
-  <div className="flex items-center justify-between">
+          <input
+            type="text"
+            placeholder="Search results..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="mt-5 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 font-code text-sm text-[var(--text)] outline-none transition duration-200 placeholder:text-[var(--muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+          />
 
-  <p className="text-sm uppercase tracking-[0.3em] text-[var(--accent)]">
-    Query Results
-  </p>
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            <AnalyticsTile label="Queries" value={totalQueries} />
+            <AnalyticsTile label="Average" value={`${averageTime} ms`} />
+            <AnalyticsTile label="Fastest" value={`${fastestQuery} ms`} />
+            <AnalyticsTile label="Slowest" value={`${slowestQuery} ms`} />
+            <AnalyticsTile label="Rows" value={totalRowsReturned} wide />
+          </div>
 
-  <span className="rounded-full bg-[var(--surface)] px-3 py-1 text-xs text-[var(--muted)]">
-  {results.length} {results.length === 1 ? "row" : "rows"} • {executionTime || "--"}
-</span>
-</div>
-<div className="mt-4">
-  <input
-    type="text"
-    placeholder="Search results..."
-    value={searchTerm}
-    onChange={(e) => setSearchTerm(e.target.value)}
-    className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm outline-none focus:border-[var(--accent)]"
-  />
-</div>
+          <div className="mt-6 max-h-[420px] overflow-auto rounded-2xl border border-[var(--border)]">
+            {results.length === 0 ? (
+              <div className="p-8 text-center text-sm text-[var(--muted)]">
+                No records found. Execute a SELECT query to display results.
+              </div>
+            ) : (
+              <table className="ide-table">
+                <thead>
+                  <tr>
+                    {Object.keys(results[0]).map((column) => (
+                      <th
+                        key={column}
+                        onClick={() => {
+                          setSortConfig((prev) => ({
+                            key: column,
+                            direction:
+                              prev.key === column && prev.direction === 'asc'
+                                ? 'desc'
+                                : 'asc',
+                          }))
+                        }}
+                        className="cursor-pointer select-none hover:text-[var(--accent-strong)]"
+                      >
+                        {column}
+                        {sortConfig.key === column &&
+                          (sortConfig.direction === 'asc' ? ' ASC' : ' DESC')}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
 
-  <div className="mt-6 overflow-x-auto rounded-[1.5rem] border border-[var(--border)]">
+                <tbody>
+                  {filteredResults.map((row, index) => (
+                    <tr key={index}>
+                      {Object.values(row).map((value, i) => (
+                        <td key={i} className="whitespace-nowrap">
+                          {String(value)}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </section>
 
-    {results.length === 0 ? (
+        <QueryList title="Query history" empty="No queries executed yet.">
+          {history.map((item, index) => (
+            <div key={index} className="group flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)]/80 p-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--accent)]/60">
+              <code onClick={() => setSql(item)} className="font-code block min-w-0 flex-1 cursor-pointer truncate text-sm text-[var(--text)]">
+                {item}
+              </code>
 
-      <div className="p-8 text-center text-[var(--muted)]">
-        No records found. Execute a SELECT query to display results.
-      </div>
+              <button
+                onClick={() => {
+                  const updatedFavorites = favorites.includes(item)
+                    ? favorites.filter((query) => query !== item)
+                    : [...favorites, item]
 
-    ) : (
+                  setFavorites(updatedFavorites)
 
-      <table className="min-w-full border-collapse">
-
-        <thead className="sticky top-0bg-[var(--surface)] z-10">
-
-          <tr>
-
-            {Object.keys(results[0]).map((column) => (
-
-              <th
-  key={column}
-  onClick={() => {
-
-    setSortConfig((prev) => ({
-
-      key: column,
-
-      direction:
-        prev.key === column && prev.direction === "asc"
-          ? "desc"
-          : "asc",
-
-    }))
-
-  }}
-  className="cursor-pointer px-5 py-3 text-left text-xs uppercase tracking-wider border-b border-[var(--border)] font-semibold hover:bg-[var(--accent)]/10 select-none"
->
-
-  {column}
-
-  {sortConfig.key === column &&
-    (sortConfig.direction === "asc" ? " ▲" : " ▼")}
-
-</th>
-
-            ))}
-
-          </tr>
-
-        </thead>
-
-        <tbody>
-
-          {filteredResults.map((row, index) => (
-
-            <tr
-              key={index}
-              className={`${index % 2 ===0 ? "bg-[var(--panel)]" : "bg-var(--surface)"} hover: bg-[var(--accent)]/10 transition-colors`}
-            >
-
-              {Object.values(row).map((value, i) => (
-
-                <td
-                  key={i}
-                  className="px-5 py-3 border-b border-[var(--border)] text-sm whitespace-nowrap"
-                >
-                  {String(value)}
-                </td>
-
-              ))}
-
-            </tr>
-
+                  localStorage.setItem(
+                    'favoriteQueries',
+                    JSON.stringify(updatedFavorites),
+                  )
+                }}
+                className="ide-button h-9 w-9 px-0"
+                aria-label={favorites.includes(item) ? 'Remove favorite' : 'Add favorite'}
+              >
+                {favorites.includes(item) ? '*' : '+'}
+              </button>
+            </div>
           ))}
+        </QueryList>
 
-        </tbody>
-
-      </table>
-
-    )}
-
-  </div>
-
-</section>
-
-        <section className="rounded-[2rem] border border-[var(--border)] bg-[var(--panel)] p-6 shadow-glow">
-
-  <p className="text-sm uppercase tracking-[0.3em] text-[var(--accent)]">
-    Query History
-  </p>
-
-  <div className="mt-5 space-y-3">
-
-    {history.length === 0 ? (
-
-      <p className="text-sm text-[var(--muted)]">
-        No queries executed yet.
-      </p>
-
-    ) : (
-
-      history.map((item, index) => (
-
-        <div
-  key={index}
-  className="flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3"
->
-
-  <code
-    onClick={() => setSql(item)}
-    className="block flex-1 truncate text-sm cursor-pointer"
-  >
-    {item}
-  </code>
-
-  <button
-    onClick={() => {
-
-    const updatedFavorites = favorites.includes(item)
-  ? favorites.filter(query => query !== item)
-  : [...favorites, item]
-
-setFavorites(updatedFavorites)
-
-localStorage.setItem(
-  "favoriteQueries",
-  JSON.stringify(updatedFavorites)
-)
-
-    }}
-    className="ml-3 text-xl hover:scale-110 transition"
-  >
-
-    {favorites.includes(item) ? "⭐" : "☆"}
-
-  </button>
-
-</div>
-
-      ))
-
-    )}
-
-  </div>
-
-</section>
-<section className="rounded-[2rem] border border-[var(--border)] bg-[var(--panel)] p-6 shadow-glow">
-
-  <p className="text-sm uppercase tracking-[0.3em] text-[var(--accent)]">
-    ⭐ Favorite Queries
-  </p>
-
-  <div className="mt-5 space-y-3">
-
-    {favorites.length === 0 ? (
-
-      <p className="text-sm text-[var(--muted)]">
-        No favorite queries yet.
-      </p>
-
-    ) : (
-
-      favorites.map((item, index) => (
-
-        <div
-          key={index}
-          onClick={() => setSql(item)}
-          className="cursor-pointer rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 transition-all"
-        >
-
-          <code className="block truncate text-sm">
-            {item}
-          </code>
-
-        </div>
-
-      ))
-
-    )}
-
-  </div>
-
-</section>
+        <QueryList title="Favorite queries" empty="No favorite queries yet.">
+          {favorites.map((item, index) => (
+            <div
+              key={index}
+              onClick={() => setSql(item)}
+              className="cursor-pointer rounded-xl border border-[var(--border)] bg-[var(--surface)]/80 p-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--accent)]/60 hover:bg-[var(--accent)]/10"
+            >
+              <code className="font-code block truncate text-sm text-[var(--text)]">
+                {item}
+              </code>
+            </div>
+          ))}
+        </QueryList>
       </aside>
     </div>
   )
@@ -436,21 +367,39 @@ localStorage.setItem(
 
 function PanelCard({ title, description }) {
   return (
-    <div className="rounded-[1.8rem] border border-[var(--border)] bg-[var(--surface)] p-6">
-      <h3 className="text-lg font-semibold text-[var(--text)]">{title}</h3>
-      <p className="mt-3 text-[var(--muted)] text-sm leading-6">{description}</p>
-      <div className="mt-5 rounded-3xl bg-[var(--surface)]/90 p-4 text-sm text-[var(--muted)]">No connected database. Connect your data source to see live results.</div>
+    <div className="ide-card flex h-full flex-col p-6 transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--accent)]/60">
+      <h3 className="font-heading text-lg font-semibold text-[var(--text)]">{title}</h3>
+      <p className="mt-3 flex-1 text-sm leading-6 text-[var(--muted)]">{description}</p>
+      <div className="ide-surface mt-5 p-4 text-sm text-[var(--muted)]">No connected database. Connect your data source to see live results.</div>
     </div>
   )
 }
 
+function AnalyticsTile({ label, value, wide = false }) {
+  const parts = String(value).split(' ')
 
-
-function ReferenceItem({ label, value }) {
   return (
-    <div className="flex items-center justify-between rounded-3xl border border-[var(--border)] bg-[var(--surface)]/90 px-4 py-3">
-      <span>{label}</span>
-      <span className="rounded-full bg-[var(--surface)] px-3 py-1 text-xs text-[var(--muted)]">{value}</span>
+    <div className={`ide-surface flex min-h-[104px] flex-col justify-between p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--accent)]/60 ${wide ? 'col-span-2' : ''}`}>
+      <p className="font-code truncate text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--muted)]">{label}</p>
+      <h3 className="font-code mt-4 flex items-baseline gap-2 text-2xl font-semibold leading-none text-[var(--text)]">
+        <span>{parts[0]}</span>
+        {parts[1] && <span className="text-sm font-semibold text-[var(--muted)]">{parts.slice(1).join(' ')}</span>}
+      </h3>
     </div>
+  )
+}
+
+function QueryList({ title, empty, children }) {
+  const hasItems = React.Children.count(children) > 0
+
+  return (
+    <section className="ide-card p-5 sm:p-6">
+      <p className="font-code text-xs uppercase tracking-[0.28em] text-[var(--accent-soft)]">{title}</p>
+      <div className="mt-5 space-y-3">
+        {hasItems ? children : (
+          <p className="rounded-xl border border-dashed border-[var(--border)] p-4 text-sm text-[var(--muted)]">{empty}</p>
+        )}
+      </div>
+    </section>
   )
 }

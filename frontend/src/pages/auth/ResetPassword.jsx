@@ -11,10 +11,10 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-md bg-[var(--panel)] border border-[var(--border)] rounded-3xl p-8 shadow-xl">
+    <div className="flex min-h-screen items-center justify-center bg-[var(--bg)] px-4 py-10">
+      <div className="ide-card w-full max-w-md p-8">
         <div className="mb-8 text-center">
-          <div className="text-3xl font-bold text-[var(--text)]">Create a new password</div>
+          <div className="font-heading text-3xl font-semibold text-[var(--text)]">Create a new password</div>
           <p className="text-[var(--muted)] mt-2">Choose a strong password to keep your account secure.</p>
         </div>
 
@@ -24,7 +24,7 @@ export default function ResetPassword() {
             <input
               type="password"
               {...register('password', { required: 'Password is required', minLength: { value: 8, message: 'Minimum 8 characters' } })}
-              className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-[var(--text)] placeholder:text-[var(--muted)] focus:border-[var(--accent)] focus:outline-none"
+              className="mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-[var(--text)] outline-none transition duration-200 placeholder:text-[var(--muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
             />
             {errors.password && <p className="mt-2 text-xs text-red-400">{errors.password.message}</p>}
           </div>
@@ -37,7 +37,7 @@ export default function ResetPassword() {
                 required: 'Confirm password is required',
                 validate: (value) => value === watch('password') || 'Passwords must match',
               })}
-              className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-[var(--text)] placeholder:text-[var(--muted)] focus:border-[var(--accent)] focus:outline-none"
+              className="mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-[var(--text)] outline-none transition duration-200 placeholder:text-[var(--muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
             />
             {errors.confirmPassword && <p className="mt-2 text-xs text-red-400">{errors.confirmPassword.message}</p>}
           </div>

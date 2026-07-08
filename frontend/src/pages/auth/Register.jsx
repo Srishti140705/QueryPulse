@@ -19,17 +19,17 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-md bg-[var(--panel)] border border-[var(--border)] rounded-3xl p-8 shadow-xl">
+    <div className="flex min-h-screen items-center justify-center bg-[var(--bg)] px-4 py-10">
+      <div className="ide-card w-full max-w-md p-8">
         <div className="mb-8 text-center">
-          <div className="text-3xl font-bold text-[var(--text)]">Create account</div>
+          <div className="font-heading text-3xl font-semibold text-[var(--text)]">Create account</div>
           <p className="text-[var(--muted)] mt-2">Start optimizing SQL with QueryPulse in seconds.</p>
         </div>
 
         <div className="space-y-3 mb-6">
           <OAuthButton
             label="Continue with Google"
-            color="bg-white text-slate-900"
+            color="bg-[var(--surface)] text-[var(--text)]"
             icon={<GoogleIcon />}
             onClick={() => handleOAuth('Google')}
           />
@@ -41,7 +41,7 @@ export default function Register() {
           />
           <OAuthButton
             label="Continue with Microsoft"
-            color="bg-[#2F2F2F] text-white"
+            color="bg-[var(--surface)] text-[var(--text)]"
             icon={<MicrosoftIcon />}
             onClick={() => handleOAuth('Microsoft')}
           />
@@ -59,7 +59,7 @@ export default function Register() {
             <input
               type="text"
               {...register('name', { required: 'Name is required' })}
-              className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-[var(--text)] placeholder:text-[var(--muted)] focus:border-[var(--accent)] focus:outline-none"
+              className="mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-[var(--text)] outline-none transition duration-200 placeholder:text-[var(--muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
             />
             {errors.name && <p className="mt-2 text-xs text-red-400">{errors.name.message}</p>}
           </div>
@@ -69,7 +69,7 @@ export default function Register() {
             <input
               type="email"
               {...register('email', { required: 'Email is required' })}
-              className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-[var(--text)] placeholder:text-[var(--muted)] focus:border-[var(--accent)] focus:outline-none"
+              className="mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-[var(--text)] outline-none transition duration-200 placeholder:text-[var(--muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
             />
             {errors.email && <p className="mt-2 text-xs text-red-400">{errors.email.message}</p>}
           </div>
@@ -79,7 +79,7 @@ export default function Register() {
             <input
               type="password"
               {...register('password', { required: 'Password is required', minLength: { value: 8, message: 'Minimum 8 characters' } })}
-              className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-[var(--text)] placeholder:text-[var(--muted)] focus:border-[var(--accent)] focus:outline-none"
+              className="mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-[var(--text)] outline-none transition duration-200 placeholder:text-[var(--muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
             />
             {errors.password && <p className="mt-2 text-xs text-red-400">{errors.password.message}</p>}
           </div>
@@ -92,7 +92,7 @@ export default function Register() {
                 required: 'Confirm password is required',
                 validate: (value) => value === watch('password') || 'Passwords must match',
               })}
-              className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-[var(--text)] placeholder:text-[var(--muted)] focus:border-[var(--accent)] focus:outline-none"
+              className="mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-[var(--text)] outline-none transition duration-200 placeholder:text-[var(--muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
             />
             {errors.confirmPassword && <p className="mt-2 text-xs text-red-400">{errors.confirmPassword.message}</p>}
           </div>
@@ -113,7 +113,7 @@ function OAuthButton({ label, color, icon, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className={`w-full inline-flex items-center justify-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium shadow-sm ${color} border border-[var(--border)] hover:opacity-90`}
+      className={`ide-button w-full ${color}`}
     >
       {icon}
       {label}

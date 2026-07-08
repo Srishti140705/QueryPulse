@@ -2,20 +2,20 @@ import React from 'react'
 
 export default function Documentation() {
   return (
-    <div className="max-w-6xl mx-auto">
-      <div className="p-6 bg-[var(--surface)] rounded-lg border border-[var(--border)]">
-        <h2 className="text-xl font-semibold text-[var(--text)]">Documentation</h2>
-        <p className="text-[var(--muted)] mt-2">Documentation for QueryPulse will be available here. This placeholder lists basic integration and usage notes.</p>
+    <div className="mx-auto max-w-6xl">
+      <section className="ide-card ide-fade-in p-6 sm:p-8">
+        <p className="font-code text-xs uppercase tracking-[0.28em] text-[var(--accent-soft)]">Documentation</p>
+        <h1 className="font-heading mt-3 text-3xl font-semibold text-[var(--text)]">Developer notes</h1>
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--muted)]">Documentation for QueryPulse will be available here. This placeholder lists basic integration and usage notes.</p>
 
-        <div className="mt-4 text-[var(--muted)]">
-          <h3 className="font-medium">Getting Started</h3>
-          <ul className="list-disc list-inside mt-2 text-sm text-[var(--text)]">
-            <li>Connect to MySQL using the backend environment variables.</li>
-            <li>Use the Query Editor to compose and analyze SQL.</li>
-            <li>View analysis results and recommendations in the Analysis panel.</li>
-          </ul>
+        <div className="mt-8 grid gap-4 md:grid-cols-3">
+          {['Connect to MySQL using backend environment variables.', 'Use the Query Editor to compose and analyze SQL.', 'View analysis results and recommendations in the analysis panel.'].map((item) => (
+            <div key={item} className="ide-surface min-h-32 p-5 text-sm leading-6 text-[var(--text)]">
+              {item}
+            </div>
+          ))}
         </div>
-      </div>
+      </section>
     </div>
   )
 }
