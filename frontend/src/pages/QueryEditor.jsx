@@ -10,6 +10,10 @@ export default function QueryEditor() {
   const [favorites, setFavorites] = useState([])
   const [executionTime, setExecutionTime] = useState(0)
   const [searchTerm, setSearchTerm] = useState("")
+  const [sortConfig, setSortConfig] = useState({
+  key: null,
+  direction: "asc",
+})
   useEffect(() => {
 
   const savedHistory = localStorage.getItem("queryHistory")
@@ -117,12 +121,28 @@ console.log("History Updated")
   URL.revokeObjectURL(url)
 
 }
-const filteredResults = results.filter((row) =>
-  Object.values(row)
-    .join(" ")
-    .toLowerCase()
-    .includes(searchTerm.toLowerCase())
-)
+const filteredResults = [...results]
+  .filter((row) =>
+    Object.values(row)
+      .join(" ")
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
+  )
+  .sort((a, b) => {
+
+    if (!sortConfig.key) return 0
+
+    if (a[sortConfig.key] < b[sortConfig.key]) {
+      return sortConfig.direction === "asc" ? -1 : 1
+    }
+
+    if (a[sortConfig.key] > b[sortConfig.key]) {
+      return sortConfig.direction === "asc" ? 1 : -1
+    }
+
+    return 0
+
+  })
 
   return (
     <div className="max-w-7xl mx-auto grid gap-6 xl:grid-cols-[1.7fr_0.9fr]">
@@ -220,11 +240,30 @@ const filteredResults = results.filter((row) =>
             {Object.keys(results[0]).map((column) => (
 
               <th
-                key={column}
-                className="px-5 py-3 text-left text-xs uppercase tracking-wider border-b border-[var(--border)] font-semibold"
-              >
-                {column}
-              </th>
+  key={column}
+  onClick={() => {
+
+    setSortConfig((prev) => ({
+
+      key: column,
+
+      direction:
+        prev.key === column && prev.direction === "asc"
+          ? "desc"
+          : "asc",
+
+    }))
+
+  }}
+  className="cursor-pointer px-5 py-3 text-left text-xs uppercase tracking-wider border-b border-[var(--border)] font-semibold hover:bg-[var(--accent)]/10 select-none"
+>
+
+  {column}
+
+  {sortConfig.key === column &&
+    (sortConfig.direction === "asc" ? " ▲" : " ▼")}
+
+</th>
 
             ))}
 
