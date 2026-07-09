@@ -1,5 +1,14 @@
 import { executeQuery } from '../services/queryService'
 import React, { useEffect, useState } from 'react'
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts"
 
 export default function QueryEditor() {
   const [sql, setSql] = useState('SELECT id, name, email FROM users WHERE active = 1 ORDER BY last_login DESC;')
@@ -32,6 +41,14 @@ export default function QueryEditor() {
     }
   }, [])
 
+  useEffect(() => {
+  const savedAnalytics = localStorage.getItem('queryAnalytics')
+
+  if (savedAnalytics) {
+    setAnalytics(JSON.parse(savedAnalytics))
+  }
+}, [])
+
   async function handleRun() {
     setLoading(true)
     const startTime = performance.now()
@@ -60,17 +77,25 @@ export default function QueryEditor() {
 
       const executionValue = elapsed
 
-      setAnalytics((prev) => [
-        ...prev,
-        {
-          query: sql,
-          executionTime: executionValue,
-          rowsReturned: response.result.rows.length,
-          queryType: sql.trim().split(' ')[0].toUpperCase(),
-          timestamp: new Date().toLocaleTimeString(),
-        },
-      ])
+      setAnalytics((prev) => {
+  const updated = [
+    ...prev,
+    {
+      query: sql,
+      executionTime: executionValue,
+      rowsReturned: response.result.rows.length,
+      queryType: sql.trim().split(" ")[0].toUpperCase(),
+      timestamp: new Date().toLocaleTimeString(),
+    },
+  ]
 
+  localStorage.setItem(
+    "queryAnalytics",
+    JSON.stringify(updated)
+  )
+
+  return updated
+})
       setHistory((prev) => [
         sql,
         ...prev.filter((item) => item !== sql),
@@ -270,7 +295,36 @@ export default function QueryEditor() {
             <AnalyticsTile label="Slowest" value={`${slowestQuery} ms`} />
             <AnalyticsTile label="Rows" value={totalRowsReturned} wide />
           </div>
+          
+          <div className="mt-5 grid grid-cols-2 gap-3">
+  ...
+</div>
 
+{/* 👇 Paste here */}
+
+<div className="mt-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
+  <h3 className="font-heading mb-4 text-lg font-semibold">
+    Execution Time Trend
+  </h3>
+
+  <ResponsiveContainer width="100%" height={250}>
+    <LineChart data={analytics}>
+      <CartesianGrid strokeDasharray="3 3" stroke="#2A2440" />
+      <XAxis dataKey="timestamp" />
+      <YAxis />
+      <Tooltip />
+      <Line
+        type="monotone"
+        dataKey="executionTime"
+        stroke="#8B5CF6"
+        strokeWidth={3}
+        dot={{ r: 4 }}
+      />
+    </LineChart>
+  </ResponsiveContainer>
+</div>
+
+<div className="mt-6 max-h-[420px] overflow-auto rounded-2xl border border-[var(--border)]"></div>
           <div className="mt-6 max-h-[420px] overflow-auto rounded-2xl border border-[var(--border)]">
             {results.length === 0 ? (
               <div className="p-8 text-center text-sm text-[var(--muted)]">
