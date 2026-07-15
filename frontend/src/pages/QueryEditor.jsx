@@ -1,5 +1,7 @@
 import Editor from "@monaco-editor/react";
-import React, { useEffect, useState } from 'react'
+import * as monaco from "monaco-editor";
+import React, { useEffect, useRef, useState } from 'react'
+import { executeQuery } from "../services/queryService";
 import {
   LineChart,
   Line,
@@ -29,7 +31,8 @@ export default function QueryEditor() {
     direction: 'asc',
   })
   const [analytics, setAnalytics] = useState([])
-
+  const editorRef = useRef(null);
+  const runButtonRef = useRef(null);
   useEffect(() => {
     const savedHistory = localStorage.getItem('queryHistory')
 
@@ -253,7 +256,7 @@ const COLORS = [
 
             <div className="flex flex-wrap gap-2">
               <button onClick={handleFormat} className="ide-button">Format</button>
-              <button onClick={handleRun} disabled={loading} className="ide-button-primary min-w-28">
+              <button ref={runButtonRef} onClick={handleRun} disabled={loading} className="ide-button-primary min-w-28">
                 {loading ? (
                   <span className="inline-flex items-center gap-2">
                     <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" />
@@ -276,7 +279,27 @@ const COLORS = [
   defaultLanguage="sql"
   value={sql}
   onChange={(value) => setSql(value || "")}
-  
+  onMount={(editor, monacoInstance) => {
+  console.log("Monaco mounted");
+
+  editorRef.current = editor;
+
+  console.log(editor);
+
+  editor.addCommand(
+    monacoInstance.KeyMod.CtrlCmd | monacoInstance.KeyCode.Enter,
+    () => {
+      runButtonRef.current?.click();
+    },
+  );
+
+  editor.addCommand(
+    monacoInstance.KeyMod.CtrlCmd | monacoInstance.KeyMod.Shift | monacoInstance.KeyCode.KeyF,
+    () => {
+      handleFormat();
+    },
+  );
+}}
   theme="vs-dark"
   options={{
     minimap: { enabled: false },
