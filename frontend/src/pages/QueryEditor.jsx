@@ -1,4 +1,4 @@
-import { executeQuery } from '../services/queryService'
+import Editor from "@monaco-editor/react";
 import React, { useEffect, useState } from 'react'
 import {
   LineChart,
@@ -88,7 +88,7 @@ export default function QueryEditor() {
     {
       query: sql,
       executionTime: executionValue,
-      rowsReturned: response.result.rows.length,
+      rowsReturned: response.result.rows?.length || 0,
       queryType: sql.trim().split(" ")[0].toUpperCase(),
       timestamp: new Date().toLocaleTimeString(),
     },
@@ -271,13 +271,39 @@ const COLORS = [
               <span>console.sql</span>
               <span>MySQL</span>
             </div>
-            <textarea
-              value={sql}
-              onChange={(event) => setSql(event.target.value)}
-              placeholder="Write your SQL here..."
-              rows={16}
-              className="font-code min-h-[360px] w-full resize-y bg-transparent px-5 py-4 text-sm leading-6 text-[var(--text)] outline-none transition placeholder:text-[var(--muted)] focus:ring-2 focus:ring-inset focus:ring-[var(--accent)]/35"
-            />
+            <Editor
+  height="360px"
+  defaultLanguage="sql"
+  value={sql}
+  onChange={(value) => setSql(value || "")}
+  
+  theme="vs-dark"
+  options={{
+    minimap: { enabled: false },
+    fontSize: 15,
+    fontFamily: "JetBrains Mono",
+    fontLigatures: true,
+    automaticLayout: true,
+    wordWrap: "on",
+    scrollBeyondLastLine: false,
+    lineNumbers: "on",
+    tabSize: 2,
+    insertSpaces: true,
+    renderLineHighlight: "all",
+    cursorBlinking: "smooth",
+    cursorSmoothCaretAnimation: "on",
+    smoothScrolling: true,
+    padding: {
+      top: 16,
+      bottom: 16,
+    },
+    roundedSelection: true,
+    scrollbar: {
+      verticalScrollbarSize: 10,
+      horizontalScrollbarSize: 10,
+    },
+  }}
+/>
           </div>
 
           <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
