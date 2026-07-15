@@ -1,6 +1,7 @@
 import Editor from "@monaco-editor/react";
 import * as monaco from "monaco-editor";
 import React, { useEffect, useRef, useState } from 'react'
+import { format } from "sql-formatter";
 import { executeQuery } from "../services/queryService";
 import {
   LineChart,
@@ -138,7 +139,15 @@ export default function QueryEditor() {
   }
 
   function handleFormat() {
-    setMessage({ type: 'success', text: 'Formatted query successfully.' })
+    try {
+      const formattedSql = format(sql, { language: "mysql" })
+      setSql(formattedSql)
+      setMessage({ type: 'success', text: 'Formatted query successfully.' })
+    } catch (error) {
+      console.error(error)
+      setMessage({ type: 'error', text: 'Failed to format query.' })
+    }
+
     window.setTimeout(() => setMessage(null), 3000)
   }
 
