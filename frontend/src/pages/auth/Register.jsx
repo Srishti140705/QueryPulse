@@ -1,17 +1,31 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import PrimaryButton from '../../components/ui/PrimaryButton'
-import { useAuth } from '../../auth/AuthProvider'
+import { register as registerUser } from '../../services/authService'
 
 export default function Register() {
-  const { register, handleSubmit, watch, formState: { errors } } = useForm()
-  const navigate = useNavigate()
-  const { login } = useAuth()
+  const { register, handleSubmit, watch, reset, formState: { errors } } = useForm()
+  const [message, setMessage] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
 
-  function onSubmit(data) {
-    login({ email: data.email })
-    navigate('/dashboard')
+  async function onSubmit(data) {
+    setMessage(null)
+    setSubmitting(true)
+
+    try {
+      await registerUser({ username: data.username, email: data.email, password: data.password })
+      reset()
+      setMessage({ type: 'success', text: 'Account created successfully. You can now sign in.' })
+    } catch (error) {
+      const detail = error.response?.data?.detail
+      setMessage({
+        type: 'error',
+        text: typeof detail === 'string' ? detail : 'Unable to create your account. Please try again.',
+      })
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   function handleOAuth(provider) {
@@ -53,22 +67,28 @@ export default function Register() {
           <span className="h-px flex-1 bg-[var(--border)]" />
         </div>
 
+
+        {message && (
+          <div className={`mb-5 rounded-xl border px-4 py-3 text-sm ${message.type === 'success' ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-200' : 'border-rose-400/20 bg-rose-400/10 text-rose-200'}`}>
+            {message.text}
+          </div>
+        )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-[var(--text)]">Full name</label>
+            <label className="block text-sm font-medium text-[var(--text)]">Username</label>
             <input
               type="text"
-              {...register('name', { required: 'Name is required' })}
+              {...register('username', { required: 'Username is required' })}
               className="mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-[var(--text)] outline-none transition duration-200 placeholder:text-[var(--muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
             />
-            {errors.name && <p className="mt-2 text-xs text-red-400">{errors.name.message}</p>}
+            {errors.username && <p className="mt-2 text-xs text-red-400">{errors.username.message}</p>}
           </div>
 
           <div>
             <label className="block text-sm font-medium text-[var(--text)]">Email</label>
             <input
               type="email"
-              {...register('email', { required: 'Email is required' })}
+              {...register('email', { required: 'Email is required', pattern: { value: /^[^@\s]+@[^@\s]+\.[^@\s]+$/, message: 'Enter a valid email address' } })}
               className="mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-[var(--text)] outline-none transition duration-200 placeholder:text-[var(--muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
             />
             {errors.email && <p className="mt-2 text-xs text-red-400">{errors.email.message}</p>}
@@ -97,7 +117,7 @@ export default function Register() {
             {errors.confirmPassword && <p className="mt-2 text-xs text-red-400">{errors.confirmPassword.message}</p>}
           </div>
 
-          <PrimaryButton type="submit" className="w-full">Create account</PrimaryButton>
+          <PrimaryButton type="submit" disabled={submitting} className="w-full">{submitting ? 'Creating account...' : 'Create account'}</PrimaryButton>
         </form>
 
         <div className="mt-8 text-center text-[var(--muted)] text-sm">

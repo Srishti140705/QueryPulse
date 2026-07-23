@@ -8,11 +8,11 @@ const api = axios.create({
 })
 
 export async function login({ email, password }) {
-  return api.post('/auth/login', { email, password })
+  return api.post('/login', { email, password })
 }
 
-export async function register({ name, email, password }) {
-  return api.post('/auth/register', { name, email, password })
+export async function register({ username, email, password }) {
+  return api.post('/register', { username, email, password })
 }
 
 export async function logout() {

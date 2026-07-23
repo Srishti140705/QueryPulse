@@ -1,12 +1,21 @@
 from fastapi.middleware.cors import CORSMiddleware
-from app.database import get_connection, close_connection
+from app.database import get_connection, close_connection, get_sqlalchemy_engine
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import Literal
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, status
 from app.api.parser import SQLParser
 from app.api.analyzer import QueryAnalyzer
 from app.api.query_executor import QueryExecutor
+from app.models import Base, User
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+import bcrypt
+import re
+import os
+from datetime import datetime, timedelta, timezone
+import jwt
 
 from dotenv import load_dotenv
 from pathlib import Path
@@ -30,7 +39,97 @@ app.add_middleware(
 class QueryRequest(BaseModel):
     query: str
     database: Literal['mysql', 'postgresql', 'sqlite', 'mariadb'] = 'mysql'
+class RegisterRequest(BaseModel):
+    username: str
+    email: str
+    password: str
 
+    @field_validator("username")
+    @classmethod
+    def validate_username(cls, value: str) -> str:
+        username = value.strip()
+        if not username:
+            raise ValueError("Username is required")
+        if len(username) > 50:
+            raise ValueError("Username must be 50 characters or fewer")
+        return username
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, value: str) -> str:
+        email = value.strip().lower()
+        if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
+            raise ValueError("A valid email address is required")
+        return email
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, value: str) -> str:
+        if len(value) < 8:
+            raise ValueError("Password must be at least 8 characters long")
+        return value
+
+
+@app.post("/register", status_code=status.HTTP_201_CREATED)
+def register_user(request: RegisterRequest):
+    engine = get_sqlalchemy_engine()
+    Base.metadata.create_all(engine)
+
+    with Session(engine) as session:
+        if session.scalar(select(User).where(User.username == request.username)):
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Username is already registered")
+        if session.scalar(select(User).where(User.email == request.email)):
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email is already registered")
+
+        user = User(
+            username=request.username,
+            email=request.email,
+            password_hash=bcrypt.hashpw(request.password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8"),
+        )
+        session.add(user)
+        try:
+            session.commit()
+        except IntegrityError:
+            session.rollback()
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Username or email is already registered")
+        session.refresh(user)
+
+        return {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "created_at": user.created_at,
+        }
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+@app.post("/login")
+def login_user(request: LoginRequest):
+    engine = get_sqlalchemy_engine()
+
+    with Session(engine) as session:
+        user = session.scalar(select(User).where(User.email == request.email.strip().lower()))
+        if user is None or not bcrypt.checkpw(request.password.encode("utf-8"), user.password_hash.encode("utf-8")):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
+
+        access_token = jwt.encode(
+            {
+                "sub": str(user.id),
+                "username": user.username,
+                "email": user.email,
+                "exp": datetime.now(timezone.utc) + timedelta(minutes=int(os.getenv("JWT_EXPIRE_MINUTES", "60"))),
+            },
+            os.getenv("JWT_SECRET_KEY", "querypulse-development-secret"),
+            algorithm="HS256",
+        )
+
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": {"id": user.id, "username": user.username, "email": user.email},
+        }
 @app.post("/query")
 def execute_query(request: QueryRequest):
     parser = SQLParser()

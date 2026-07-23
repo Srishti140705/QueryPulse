@@ -25,8 +25,10 @@ from __future__ import annotations
 
 import os
 from typing import Optional
+from urllib.parse import quote_plus
 
 import mysql.connector
+from sqlalchemy import create_engine
 from mysql.connector import Error as MySQLError
 
 
@@ -124,3 +126,17 @@ def close_connection(connection: Optional[mysql.connector.connection.MySQLConnec
             connection.close()
     except MySQLError as exc:
         raise RuntimeError(f"Error closing MySQL connection: {exc}") from exc
+
+
+def get_sqlalchemy_engine():
+    """Return a SQLAlchemy engine using the existing MySQL configuration."""
+    host = _get_env_var("MYSQL_HOST")
+    user = _get_env_var("MYSQL_USER")
+    password = _get_env_var("MYSQL_PASSWORD")
+    database = _get_env_var("MYSQL_DATABASE")
+    port = _get_env_var("MYSQL_PORT", required=False) or "3306"
+
+    return create_engine(
+        f"mysql+mysqlconnector://{quote_plus(user)}:{quote_plus(password)}@{host}:{port}/{database}",
+        pool_pre_ping=True,
+    )

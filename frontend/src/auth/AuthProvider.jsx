@@ -14,14 +14,14 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(false)
 
-  const login = useCallback(({ email }) => {
-    setLoading(true)
-    window.setTimeout(() => {
-      setUser(dummyUser(email))
-      setLoading(false)
-    }, 400)
+  const login = useCallback(({ id, username, email }) => {
+    setUser({
+      ...dummyUser(email),
+      id: String(id),
+      name: username,
+      email,
+    })
   }, [])
-
   const register = useCallback(({ name, email }) => {
     setLoading(true)
     window.setTimeout(() => {

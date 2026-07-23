@@ -1,19 +1,36 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router-dom'
 import PrimaryButton from '../../components/ui/PrimaryButton'
 import { useAuth } from '../../auth/AuthProvider'
+import { login as loginUser } from '../../services/authService'
 
 export default function Login() {
   const { register, handleSubmit, formState: { errors } } = useForm()
   const navigate = useNavigate()
   const { login } = useAuth()
+  const [message, setMessage] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
 
-  function onSubmit(data) {
-    login({ email: data.email })
-    navigate('/dashboard')
+  async function onSubmit(data) {
+    setMessage(null)
+    setSubmitting(true)
+
+    try {
+      const response = await loginUser(data)
+      const { access_token: accessToken, user } = response.data
+      localStorage.setItem('access_token', accessToken)
+      localStorage.setItem('auth_user', JSON.stringify(user))
+      login(user)
+      navigate('/dashboard')
+    } catch (error) {
+      const detail = error.response?.data?.detail
+      const errorText = Array.isArray(detail) ? detail[0]?.msg : detail
+      setMessage({ type: 'error', text: typeof errorText === 'string' ? errorText : 'Unable to sign in. Please try again.' })
+    } finally {
+      setSubmitting(false)
+    }
   }
-
   function handleOAuth(provider) {
     console.log(`OAuth provider: ${provider}`)
   }
@@ -53,6 +70,12 @@ export default function Login() {
           <span className="h-px flex-1 bg-[var(--border)]" />
         </div>
 
+
+        {message && (
+          <div className="mb-5 rounded-xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-200">
+            {message.text}
+          </div>
+        )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-[var(--text)]">Email</label>
@@ -81,7 +104,7 @@ export default function Login() {
             <Link to="/forgot-password" className="text-[var(--accent)] hover:text-[var(--accent-strong)]">Forgot password?</Link>
           </div>
 
-          <PrimaryButton type="submit" className="w-full">Sign In</PrimaryButton>
+          <PrimaryButton type="submit" disabled={submitting} className="w-full">{submitting ? 'Signing in...' : 'Sign In'}</PrimaryButton>
         </form>
 
         <div className="mt-8 text-center text-[var(--muted)] text-sm">
