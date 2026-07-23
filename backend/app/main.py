@@ -3,7 +3,7 @@ from app.database import get_connection, close_connection, get_sqlalchemy_engine
 
 from pydantic import BaseModel, field_validator
 from typing import Literal
-from fastapi import FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, status
 from app.api.parser import SQLParser
 from app.api.analyzer import QueryAnalyzer
 from app.api.query_executor import QueryExecutor
@@ -16,6 +16,7 @@ import re
 import os
 from datetime import datetime, timedelta, timezone
 import jwt
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from dotenv import load_dotenv
 from pathlib import Path
@@ -24,6 +25,21 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
 app = FastAPI()
+security = HTTPBearer(auto_error=False)
+
+
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    if credentials is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required", headers={"WWW-Authenticate": "Bearer"})
+
+    try:
+        return jwt.decode(
+            credentials.credentials,
+            os.getenv("JWT_SECRET_KEY", "querypulse-development-secret"),
+            algorithms=["HS256"],
+        )
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token", headers={"WWW-Authenticate": "Bearer"})
 
 
 app.add_middleware(
@@ -131,7 +147,7 @@ def login_user(request: LoginRequest):
             "user": {"id": user.id, "username": user.username, "email": user.email},
         }
 @app.post("/query")
-def execute_query(request: QueryRequest):
+def execute_query(request: QueryRequest, current_user: dict = Depends(get_current_user)):
     parser = SQLParser()
     executor = QueryExecutor(request.database)
 
@@ -162,7 +178,7 @@ def home():
     }
 
 @app.get("/db-test")
-def db_test():
+def db_test(current_user: dict = Depends(get_current_user)):
     conn = None
     try:
         conn = get_connection()
@@ -181,7 +197,7 @@ def health():
     }
 
 @app.post("/analyze")
-def analyze_query(request: QueryRequest):
+def analyze_query(request: QueryRequest, current_user: dict = Depends(get_current_user)):
     parser = SQLParser()
     analyzer = None
 

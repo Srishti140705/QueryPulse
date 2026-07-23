@@ -11,7 +11,20 @@ const dummyUser = (email) => ({
 })
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
+  const [user, setUser] = useState(() => {
+    const token = localStorage.getItem('access_token')
+    const savedUser = localStorage.getItem('auth_user')
+    if (!token || !savedUser) return null
+
+    try {
+      const { id, username, email } = JSON.parse(savedUser)
+      return { ...dummyUser(email), id: String(id), name: username, email }
+    } catch {
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('auth_user')
+      return null
+    }
+  })
   const [loading, setLoading] = useState(false)
 
   const login = useCallback(({ id, username, email }) => {
@@ -37,11 +50,9 @@ export function AuthProvider({ children }) {
   }, [])
 
   const logout = useCallback(() => {
-    setLoading(true)
-    window.setTimeout(() => {
-      setUser(null)
-      setLoading(false)
-    }, 200)
+    localStorage.removeItem('access_token')
+    localStorage.removeItem('auth_user')
+    setUser(null)
   }, [])
 
   const value = {

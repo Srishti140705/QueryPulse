@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 
 const navItems = [
@@ -13,7 +13,8 @@ const navItems = [
 export default function AuthenticatedLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const location = useLocation()
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
 
   const breadcrumbs = useMemo(() => {
     const segments = location.pathname.split('/').filter(Boolean)
@@ -85,6 +86,7 @@ export default function AuthenticatedLayout() {
 
               <div className="flex flex-wrap items-center gap-3 sm:flex-nowrap">
                 <button className="ide-button">Notifications</button>
+                <button onClick={() => { logout(); navigate('/login') }} className="ide-button">Logout</button>
                 <div className="inline-flex h-11 items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3">
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[var(--accent)] to-[var(--accent-strong)] font-heading text-sm font-semibold text-white">
                     {initials}
