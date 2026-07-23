@@ -19,8 +19,8 @@ class QueryExecutor:
     as an "error" string in the result.
     """
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self, database: str = 'mysql') -> None:
+        self.database = database
 
     def execute_select(self, query: str, params: Optional[tuple] = None) -> Dict[str, Any]:
         """Execute a SELECT query and return rows as a list of dictionaries.
@@ -35,6 +35,9 @@ class QueryExecutor:
               - "row_count": int
               - "error": str (only present on failure)
         """
+        if self.database not in {'mysql', 'mariadb'}:
+            return {'error': f'{self.database} execution adapter is not configured.'}
+
         conn = None
         cursor = None
         try:
@@ -74,6 +77,9 @@ class QueryExecutor:
               - "last_row_id": Optional[int] (for inserts; may be None)
               - "error": str (only present on failure)
         """
+        if self.database not in {'mysql', 'mariadb'}:
+            return {'error': f'{self.database} execution adapter is not configured.'}
+
         conn = None
         cursor = None
         try:

@@ -13,13 +13,14 @@ class SQLParser:
         self._expression: Optional[exp.Expression] = None
         self._query: Optional[str] = None
 
-    def parse(self, query: str) -> Dict[str, Any]:
+    def parse(self, query: str, dialect: Optional[str] = None) -> Dict[str, Any]:
         """Parse a SQL query and return extracted information."""
         if not isinstance(query, str) or not query.strip():
             raise ValueError("A non-empty SQL query string is required.")
 
         self._query = query.strip()
-        self._expression = sqlglot.parse_one(self._query)
+        dialect_name = {"postgresql": "postgres", "mariadb": "mysql"}.get(dialect or "", dialect)
+        self._expression = sqlglot.parse_one(self._query, read=dialect_name)
 
         return {
             "query_type": self.get_query_type(),

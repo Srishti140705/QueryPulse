@@ -2,6 +2,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.database import get_connection, close_connection
 
 from pydantic import BaseModel
+from typing import Literal
 from fastapi import FastAPI
 from app.api.parser import SQLParser
 from app.api.analyzer import QueryAnalyzer
@@ -28,15 +29,16 @@ app.add_middleware(
 
 class QueryRequest(BaseModel):
     query: str
+    database: Literal['mysql', 'postgresql', 'sqlite', 'mariadb'] = 'mysql'
 
 @app.post("/query")
 def execute_query(request: QueryRequest):
     parser = SQLParser()
-    executor = QueryExecutor()
+    executor = QueryExecutor(request.database)
 
     # Attempt to determine query type using the parser; fall back to first token
     try:
-        parsed = parser.parse(request.query)
+        parsed = parser.parse(request.query, dialect=request.database)
         qtype = (parsed.get("query_type") or "").upper()
     except Exception:
         qtype = request.query.strip().split()[0].upper() if request.query and request.query.strip() else ""
@@ -85,7 +87,7 @@ def analyze_query(request: QueryRequest):
     analyzer = None
 
     try:
-        parsed = parser.parse(request.query)
+        parsed = parser.parse(request.query, dialect=request.database)
         analyzer = QueryAnalyzer(parsed)
         analysis = analyzer.analyze()
 

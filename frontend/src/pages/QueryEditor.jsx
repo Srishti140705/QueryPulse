@@ -2,7 +2,8 @@ import Editor from "@monaco-editor/react";
 import * as monaco from "monaco-editor";
 import React, { useEffect, useRef, useState } from 'react'
 import { format } from "sql-formatter";
-import { executeQuery } from "../services/queryService";
+import { analyzeQuery, executeQuery } from "../services/queryService";
+import { analyzeSQL } from "../utils/sqlAnalyzer";
 import {
   LineChart,
   Line,
@@ -20,6 +21,7 @@ import {
 
 export default function QueryEditor() {
   const [sql, setSql] = useState('SELECT id, name, email FROM users WHERE active = 1 ORDER BY last_login DESC;')
+  const [database, setDatabase] = useState(() => localStorage.getItem('selectedDatabase') || 'mysql')
   const [message, setMessage] = useState(null)
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
@@ -32,8 +34,20 @@ export default function QueryEditor() {
     direction: 'asc',
   })
   const [analytics, setAnalytics] = useState([])
+  const [staticWarnings, setStaticWarnings] = useState(() => analyzeSQL(sql))
+  const [warningsDismissed, setWarningsDismissed] = useState(false)
+  const [executionPlan, setExecutionPlan] = useState({
+    queryType: '--',
+    estimatedCost: '--',
+    tables: [],
+    suggestions: [],
+  })
   const editorRef = useRef(null);
   const runButtonRef = useRef(null);
+  useEffect(() => {
+    localStorage.setItem('selectedDatabase', database)
+  }, [database])
+
   useEffect(() => {
     const savedHistory = localStorage.getItem('queryHistory')
 
@@ -58,11 +72,52 @@ export default function QueryEditor() {
   }
 }, [])
 
+  useEffect(() => {
+    setStaticWarnings(analyzeSQL(sql))
+    setWarningsDismissed(false)
+  }, [sql])
+
+  useEffect(() => {
+    let isCurrent = true
+
+    const timeout = window.setTimeout(async () => {
+      if (!sql.trim()) {
+        setExecutionPlan({ queryType: '--', estimatedCost: '--', tables: [], suggestions: [] })
+        return
+      }
+
+      try {
+        const response = await analyzeQuery(sql, database)
+        if (!isCurrent || response.error) return
+
+        const suggestions = [...(response.analysis?.recommendations || [])]
+        if (/\bSELECT\s+\*/i.test(sql)) suggestions.push('Avoid SELECT *; select only the columns you need.')
+        if (/^(SELECT|UPDATE|DELETE)\b/i.test(sql.trim()) && !/\bWHERE\b/i.test(sql)) suggestions.push('Add a WHERE clause to reduce scanned or affected rows.')
+        if (/\bWHERE\b/i.test(sql)) suggestions.push('Consider indexing filtered columns.')
+        if (/^SELECT\b/i.test(sql.trim()) && !/\bLIMIT\b/i.test(sql)) suggestions.push('LIMIT large result sets when appropriate.')
+
+        setExecutionPlan({
+          queryType: response.parsed?.query_type || '--',
+          estimatedCost: response.analysis?.estimated_cost || '--',
+          tables: response.parsed?.tables || [],
+          suggestions: [...new Set(suggestions)],
+        })
+      } catch (error) {
+        if (isCurrent) setExecutionPlan({ queryType: '--', estimatedCost: '--', tables: [], suggestions: [] })
+      }
+    }, 300)
+
+    return () => {
+      isCurrent = false
+      window.clearTimeout(timeout)
+    }
+  }, [sql])
   async function handleRun() {
+    setStaticWarnings(analyzeSQL(sql))
     setLoading(true)
     const startTime = performance.now()
     try {
-      const response = await executeQuery(sql)
+      const response = await executeQuery(sql, database)
       if (response.result.error) {
         throw new Error(response.result.error)
       }
@@ -140,7 +195,7 @@ export default function QueryEditor() {
 
   function handleFormat() {
     try {
-      const formattedSql = format(sql, { language: "mysql" })
+      const formattedSql = format(sql, { language: database === "mariadb" ? "mysql" : database })
       setSql(formattedSql)
       setMessage({ type: 'success', text: 'Formatted query successfully.' })
     } catch (error) {
@@ -278,10 +333,16 @@ const COLORS = [
             </div>
           </div>
 
-          <div className="mt-6 overflow-hidden rounded-2xl border border-[var(--border)] bg-[#0A0716] shadow-inner">
-            <div className="flex h-10 items-center justify-between border-b border-[var(--border)] bg-[var(--surface)]/80 px-4 font-code text-xs text-[var(--muted)]">
+          <div className="relative mt-6">
+            <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[#0A0716] shadow-inner">
+              <div className="flex h-10 items-center justify-between border-b border-[var(--border)] bg-[var(--surface)]/80 px-4 font-code text-xs text-[var(--muted)]">
               <span>console.sql</span>
-              <span>MySQL</span>
+              <select value={database} onChange={(event) => setDatabase(event.target.value)} className="bg-transparent font-code text-xs text-[var(--muted)] outline-none">
+                <option value="mysql">MySQL</option>
+                <option value="postgresql">PostgreSQL</option>
+                <option value="sqlite">SQLite</option>
+                <option value="mariadb">MariaDB</option>
+              </select>
             </div>
             <Editor
   height="360px"
@@ -336,10 +397,27 @@ const COLORS = [
     },
   }}
 />
+            </div>
+            {staticWarnings.length > 0 && !warningsDismissed && (
+              <div className="absolute inset-x-3 top-full z-20 mt-2 rounded-xl border border-amber-400/40 bg-[#241A2F] p-4 shadow-2xl shadow-black/30">
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 text-amber-300" aria-hidden="true">&#9888;</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-amber-100">Static analysis warnings</p>
+                    <ul className="mt-2 space-y-1.5 text-sm leading-5 text-amber-100/75">
+                      {staticWarnings.map((warning) => (
+                        <li key={warning.title}><span className="font-medium text-amber-100">{warning.title}:</span> {warning.message}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <button onClick={() => setWarningsDismissed(true)} className="-mr-1 -mt-1 rounded-lg p-1 text-amber-100/70 transition hover:bg-amber-400/10 hover:text-amber-100" aria-label="Dismiss static analysis warnings">&times;</button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="ide-surface font-code px-4 py-3 text-xs text-[var(--muted)]">Dialect: MySQL / Safety: enabled / Timeout: 30s</div>
+            <div className="ide-surface font-code px-4 py-3 text-xs text-[var(--muted)]">Dialect: {database === "postgresql" ? "PostgreSQL" : database === "sqlite" ? "SQLite" : database === "mariadb" ? "MariaDB" : "MySQL"} / Safety: enabled / Timeout: 30s</div>
             {message && (
               <div className={`rounded-xl px-4 py-3 text-sm transition-all duration-200 ${message.type === 'success' ? 'border border-emerald-400/20 bg-emerald-400/10 text-emerald-200' : 'border border-rose-400/20 bg-rose-400/10 text-rose-200'}`}>
                 {message.text}
@@ -349,7 +427,28 @@ const COLORS = [
         </section>
 
         <section className="grid items-stretch gap-6 lg:grid-cols-2">
-          <PanelCard title="Execution plan" description="A preview of the query plan, warnings, and optimization suggestions." />
+          <PanelCard title="Execution plan" description="A preview of the query plan, warnings, and optimization suggestions.">
+            <div className="mt-5 space-y-4 text-sm">
+              <div className="grid grid-cols-2 gap-3">
+                <PlanMetric label="Query type" value={executionPlan.queryType} />
+                <PlanMetric label="Estimated cost" value={executionPlan.estimatedCost} />
+                <PlanMetric label="Rows returned" value={results.length} />
+                <PlanMetric label="Tables used" value={executionPlan.tables.length} />
+              </div>
+              <div>
+                <p className="font-code text-[11px] uppercase tracking-[0.08em] text-[var(--muted)]">Tables</p>
+                <p className="mt-2 font-code text-xs text-[var(--text)]">{executionPlan.tables.length ? executionPlan.tables.join(', ') : '--'}</p>
+              </div>
+              <div>
+                <p className="font-code text-[11px] uppercase tracking-[0.08em] text-[var(--muted)]">Optimization suggestions</p>
+                {executionPlan.suggestions.length ? (
+                  <ul className="mt-2 space-y-2 text-sm leading-5 text-[var(--muted)]">
+                    {executionPlan.suggestions.map((suggestion) => <li key={suggestion}>&bull; {suggestion}</li>)}
+                  </ul>
+                ) : <p className="mt-2 text-sm text-[var(--muted)]">No suggestions available.</p>}
+              </div>
+            </div>
+          </PanelCard>
           <PanelCard title="Static analysis" description="Score, unused columns, missing indexes, and style recommendations." />
         </section>
 
@@ -511,16 +610,19 @@ const COLORS = [
   )
 }
 
-function PanelCard({ title, description }) {
+function PanelCard({ title, description, children }) {
   return (
     <div className="ide-card flex h-full flex-col p-6 transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--accent)]/60">
       <h3 className="font-heading text-lg font-semibold text-[var(--text)]">{title}</h3>
       <p className="mt-3 flex-1 text-sm leading-6 text-[var(--muted)]">{description}</p>
-      <div className="ide-surface mt-5 p-4 text-sm text-[var(--muted)]">No connected database. Connect your data source to see live results.</div>
+      {children || <div className="ide-surface mt-5 p-4 text-sm text-[var(--muted)]">No connected database. Connect your data source to see live results.</div>}
     </div>
   )
 }
 
+function PlanMetric({ label, value }) {
+  return <div className="ide-surface p-3"><p className="font-code text-[10px] uppercase tracking-[0.08em] text-[var(--muted)]">{label}</p><p className="mt-2 font-code text-sm text-[var(--text)]">{value}</p></div>
+}
 function ChartCard({ title, children }) {
   return (
     <div className="ide-surface p-5">
