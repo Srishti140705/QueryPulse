@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link } from 'react-router-dom'
 import PrimaryButton from '../../components/ui/PrimaryButton'
-import { register as registerUser } from '../../services/authService'
+import { register as registerUser, startOAuth } from '../../services/authService'
 
 export default function Register() {
   const { register, handleSubmit, watch, reset, formState: { errors } } = useForm()
@@ -29,7 +29,7 @@ export default function Register() {
   }
 
   function handleOAuth(provider) {
-    console.log(`OAuth provider: ${provider}`)
+    startOAuth(provider.toLowerCase())
   }
 
   return (

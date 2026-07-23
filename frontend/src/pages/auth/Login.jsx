@@ -1,9 +1,9 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router-dom'
 import PrimaryButton from '../../components/ui/PrimaryButton'
 import { useAuth } from '../../auth/AuthProvider'
-import { login as loginUser } from '../../services/authService'
+import { login as loginUser, startOAuth } from '../../services/authService'
 
 export default function Login() {
   const { register, handleSubmit, formState: { errors } } = useForm()
@@ -11,6 +11,32 @@ export default function Login() {
   const { login } = useAuth()
   const [message, setMessage] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    const callback = new URLSearchParams(window.location.hash.slice(1))
+    const accessToken = callback.get('access_token')
+    const userData = callback.get('user')
+    const oauthError = new URLSearchParams(window.location.search).get('oauth_error')
+
+    if (accessToken && userData) {
+      try {
+        const user = JSON.parse(userData)
+        localStorage.setItem('access_token', accessToken)
+        localStorage.setItem('auth_user', JSON.stringify(user))
+        login(user)
+        window.history.replaceState({}, document.title, '/login')
+        navigate('/dashboard')
+        return
+      } catch {
+        setMessage({ type: 'error', text: 'OAuth authentication response was invalid.' })
+      }
+    }
+
+    if (oauthError) {
+      setMessage({ type: 'error', text: oauthError })
+      window.history.replaceState({}, document.title, '/login')
+    }
+  }, [login, navigate])
 
   async function onSubmit(data) {
     setMessage(null)
@@ -32,7 +58,7 @@ export default function Login() {
     }
   }
   function handleOAuth(provider) {
-    console.log(`OAuth provider: ${provider}`)
+    startOAuth(provider.toLowerCase())
   }
 
   return (

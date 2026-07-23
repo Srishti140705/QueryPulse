@@ -7,6 +7,7 @@ from fastapi import Depends, FastAPI, HTTPException, status
 from app.api.parser import SQLParser
 from app.api.analyzer import QueryAnalyzer
 from app.api.query_executor import QueryExecutor
+from app.api.oauth import router as oauth_router
 from app.models import Base, User
 from sqlalchemy import inspect, select, text
 from sqlalchemy.exc import IntegrityError
@@ -27,6 +28,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
 app = FastAPI()
+app.include_router(oauth_router)
 security = HTTPBearer(auto_error=False)
 
 

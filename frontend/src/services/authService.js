@@ -27,6 +27,10 @@ export async function resetPassword({ token, password }) {
   return api.post('/reset-password', { token, password })
 }
 
+export function startOAuth(provider) {
+  window.location.assign(api.defaults.baseURL + '/oauth/' + provider + '/authorize')
+}
+
 export async function googleLogin({ accessToken }) {
   return api.post('/auth/google', { access_token: accessToken })
 }
