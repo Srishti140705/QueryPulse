@@ -56,6 +56,9 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
         return jwt.decode(credentials.credentials, jwt_secret(), algorithms=["HS256"])
     except jwt.PyJWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token", headers={"WWW-Authenticate": "Bearer"})
+from app.api.connections import router as connections_router
+app.include_router(connections_router)
+
 
 
 def ensure_user_columns(engine) -> None:
@@ -374,4 +377,5 @@ def analyze_query(request: QueryRequest, current_user: dict = Depends(get_curren
         return {"parsed": parsed, "analysis": QueryAnalyzer(parsed).analyze()}
     except Exception as e:
         return {"error": str(e)}
+
 

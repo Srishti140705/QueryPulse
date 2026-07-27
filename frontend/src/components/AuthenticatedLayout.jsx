@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+﻿import React, { useMemo, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 
@@ -8,6 +8,7 @@ const navItems = [
   { label: 'History', to: '/history' },
   { label: 'Profile', to: '/profile' },
   { label: 'Settings', to: '/settings' },
+  { label: 'Connections', to: '/connections' },
 ]
 
 export default function AuthenticatedLayout() {
@@ -123,3 +124,4 @@ export default function AuthenticatedLayout() {
     </div>
   )
 }
+

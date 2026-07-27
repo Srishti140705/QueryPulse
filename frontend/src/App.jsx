@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { useAuth } from './auth/AuthProvider'
 import Navbar from './components/Navbar'
@@ -11,6 +11,7 @@ import About from './pages/About'
 import Profile from './pages/Profile'
 import Settings from './pages/Settings'
 import Dashboard from './pages/Dashboard'
+import DatabaseConnections from './pages/DatabaseConnections'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import ForgotPassword from './pages/auth/ForgotPassword'
@@ -72,9 +73,10 @@ export default function App() {
           <Route path="/editor" element={<QueryEditor />} />
           <Route path="/history" element={<History />} />
           <Route path="/profile" element={<Profile />} />
-          <Route path="/settings" element={<Settings />} />
+          <Route path="/settings" element={<Settings />} />`r`n          <Route path="/connections" element={<DatabaseConnections />} />
         </Route>
       </Routes>
     </div>
   )
 }
+
