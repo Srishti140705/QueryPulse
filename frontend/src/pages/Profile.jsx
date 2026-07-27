@@ -1,14 +1,39 @@
-import React, { useState } from 'react'
-
-const tabs = [
-  { id: 'Profile', label: 'Profile' },
-  { id: 'Preferences', label: 'Preferences' },
-  { id: 'API Keys', label: 'API Keys' },
-  { id: 'Security', label: 'Security' },
-]
+﻿import React, { useEffect, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { getCurrentUser, updateCurrentUser } from '../services/authService'
+import { useAuth } from '../auth/AuthProvider'
+import PrimaryButton from '../components/ui/PrimaryButton'
 
 export default function Profile() {
-  const [activeTab, setActiveTab] = useState('Profile')
+  const { user, login } = useAuth()
+  const [profile, setProfile] = useState(user)
+  const [message, setMessage] = useState(null)
+  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm()
+
+  useEffect(() => {
+    getCurrentUser().then(({ data }) => setProfile(data)).catch(() => setMessage({ type: 'error', text: 'Unable to load your profile.' }))
+  }, [])
+
+  async function onSubmit(data) {
+    setMessage(null)
+    const payload = {}
+    if (data.username?.trim()) payload.username = data.username.trim()
+    if (data.password) payload.password = data.password
+    if (!Object.keys(payload).length) return setMessage({ type: 'error', text: 'Enter a username or a new password.' })
+    try {
+      const { data: updated } = await updateCurrentUser(payload)
+      localStorage.setItem('auth_user', JSON.stringify(updated))
+      setProfile(updated)
+      login(updated)
+      reset()
+      setMessage({ type: 'success', text: 'Profile updated successfully.' })
+    } catch (error) {
+      setMessage({ type: 'error', text: error.response?.data?.detail || 'Unable to update your profile.' })
+    }
+  }
+
+  const joined = profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : '—'
+  const initial = profile?.username?.slice(0, 2).toUpperCase() || 'QP'
 
   return (
     <div className="bg-[var(--bg)] text-[var(--text)]">
@@ -18,197 +43,29 @@ export default function Profile() {
             <div>
               <p className="font-code text-xs uppercase tracking-[0.28em] text-[var(--accent-soft)]">User profile</p>
               <h1 className="font-heading mt-3 text-4xl font-semibold">Account dashboard</h1>
-              <p className="mt-3 max-w-2xl text-[var(--muted)]">Manage your account details, preferences, API access, and security settings all in one polished place.</p>
+              <p className="mt-3 max-w-2xl text-[var(--muted)]">Manage your account details and security settings.</p>
             </div>
-            <div className="ide-surface px-6 py-5 text-sm text-[var(--text)]">
-              Joined
-              <div className="mt-2 text-2xl font-semibold text-[var(--text)]">April 12, 2025</div>
-            </div>
+            <div className="ide-surface px-6 py-5 text-sm text-[var(--text)]">Joined<div className="mt-2 text-2xl font-semibold">{joined}</div></div>
           </div>
         </div>
-
         <div className="grid gap-6 xl:grid-cols-[320px_1fr]">
           <section className="ide-card space-y-6 p-6">
-            <div className="flex items-center gap-4">
-              <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-[var(--accent)] to-[var(--accent-strong)] p-1 shadow-inner">
-                <div className="flex h-full w-full items-center justify-center rounded-xl bg-[var(--surface)] font-heading text-3xl font-semibold text-[var(--text)]">JS</div>
-              </div>
-              <div>
-                <div className="text-lg font-semibold text-[var(--text)]">Jordan Smith</div>
-                <div className="text-sm text-[var(--muted)]">Senior SQL Developer</div>
-              </div>
-            </div>
-
-            <div className="ide-surface space-y-3 p-4">
-              <div className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">About</div>
-              <p className="text-sm text-[var(--text)]">I help engineering teams tune queries, improve database reliability, and ship analytics faster with robust SQL tooling.</p>
-            </div>
-
-            <div className="space-y-4">
-              <DetailRow label="Email" value="jordan.smith@querypulse.dev" />
-              <DetailRow label="Role" value="Admin" />
-              <DetailRow label="Location" value="Austin, TX" />
-            </div>
+            <div className="flex items-center gap-4"><div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--accent)] to-[var(--accent-strong)] font-heading text-2xl font-semibold">{initial}</div><div><div className="text-lg font-semibold">{profile?.username || 'Loading...'}</div><div className="text-sm text-[var(--muted)]">QueryPulse user</div></div></div>
+            <div className="space-y-4"><DetailRow label="Email" value={profile?.email || '—'} /><DetailRow label="Verified" value={profile?.email_verified ? 'Verified' : 'Pending verification'} /><DetailRow label="Created" value={joined} /></div>
           </section>
-
           <section className="ide-card p-6">
-            <div className="mb-6 flex flex-wrap gap-2">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200 ${
-                    activeTab === tab.id ? 'bg-[var(--accent)] text-[var(--accent-text)] shadow-lg shadow-violet-950/30' : 'bg-[var(--surface)]/90 text-[var(--muted)] hover:bg-[var(--surface)] hover:text-[var(--text)]'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-
-            <div className="space-y-6">
-              {activeTab === 'Profile' && <ProfilePanel />}
-              {activeTab === 'Preferences' && <PreferencesPanel />}
-              {activeTab === 'API Keys' && <ApiKeysPanel />}
-              {activeTab === 'Security' && <SecurityPanel />}
-            </div>
+            <p className="text-sm uppercase tracking-[0.24em] text-[var(--muted)]">Account settings</p>
+            <h2 className="mt-3 text-xl font-semibold">Update profile</h2>
+            {message && <div className={`mt-5 rounded-xl border px-4 py-3 text-sm ${message.type === 'success' ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-200' : 'border-rose-400/20 bg-rose-400/10 text-rose-200'}`}>{message.text}</div>}
+            <form onSubmit={handleSubmit(onSubmit)} className="mt-6 max-w-xl space-y-5">
+              <div><label className="block text-sm font-medium">Username</label><input defaultValue={profile?.username || ''} {...register('username', { maxLength: { value: 50, message: 'Maximum 50 characters' } })} className="mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 outline-none focus:border-[var(--accent)]" />{errors.username && <p className="mt-2 text-xs text-red-400">{errors.username.message}</p>}</div>
+              <div><label className="block text-sm font-medium">New password</label><input type="password" {...register('password', { minLength: { value: 8, message: 'Minimum 8 characters' } })} className="mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 outline-none focus:border-[var(--accent)]" />{errors.password && <p className="mt-2 text-xs text-red-400">{errors.password.message}</p>}</div>
+              <PrimaryButton type="submit" disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save changes'}</PrimaryButton>
+            </form>
           </section>
         </div>
       </div>
     </div>
   )
 }
-
-function DetailRow({ label, value }) {
-  return (
-    <div className="ide-surface flex items-center justify-between px-4 py-3">
-      <span className="text-sm text-[var(--muted)]">{label}</span>
-      <span className="text-sm font-medium text-[var(--text)]">{value}</span>
-    </div>
-  )
-}
-
-function ProfilePanel() {
-  return (
-    <div className="space-y-6">
-      <div className="ide-surface p-5">
-        <div className="text-sm uppercase tracking-[0.24em] text-[var(--muted)]">Bio</div>
-        <p className="mt-3 text-[var(--text)] leading-relaxed">Jordan is responsible for building and maintaining core SQL workflows for QueryPulse. They specialize in query optimization, schema review, and delivering actionable analytics to engineering teams.</p>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <DetailCard title="Name" value="Jordan Smith" />
-        <DetailCard title="Email" value="jordan.smith@querypulse.dev" />
-        <DetailCard title="Role" value="Admin" />
-        <DetailCard title="Joined" value="April 12, 2025" />
-      </div>
-    </div>
-  )
-}
-
-function PreferencesPanel() {
-  return (
-    <div className="space-y-6">
-      <div className="ide-surface p-5">
-        <div className="text-sm uppercase tracking-[0.24em] text-[var(--muted)]">Interface preferences</div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <StatusBadge label="Theme" value="Dark mode" />
-          <StatusBadge label="Editor font" value="JetBrains Mono" />
-          <StatusBadge label="Notifications" value="Email alerts enabled" />
-          <StatusBadge label="Query history" value="Saved automatically" />
-        </div>
-      </div>
-
-      <div className="ide-surface p-5">
-        <div className="text-sm uppercase tracking-[0.24em] text-[var(--muted)]">Workspace</div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <StatusBadge label="Default database" value="analytics_prod" />
-          <StatusBadge label="Auto-save" value="On" />
-          <StatusBadge label="Time zone" value="UTC" />
-          <StatusBadge label="Language" value="English" />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function ApiKeysPanel() {
-  return (
-    <div className="space-y-6">
-      <div className="ide-surface p-5">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <div className="text-sm uppercase tracking-[0.24em] text-[var(--muted)]">Active API keys</div>
-            <p className="mt-2 text-[var(--text)] text-sm">Create and manage keys for integrations and CLI access.</p>
-          </div>
-          <button className="ide-button-primary">Create key</button>
-        </div>
-
-        <div className="mt-5 space-y-4">
-          <ApiKeyItem name="QueryPulse CLI" created="May 10, 2026" status="Active" />
-          <ApiKeyItem name="Analytics service" created="June 1, 2026" status="Revoked" />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function SecurityPanel() {
-  return (
-    <div className="space-y-6">
-      <div className="ide-surface p-5">
-        <div className="text-sm uppercase tracking-[0.24em] text-[var(--muted)]">Account security</div>
-        <div className="mt-4 space-y-4">
-          <StatusBadge label="Two-factor authentication" value="Enabled" />
-          <StatusBadge label="Password strength" value="Strong" />
-          <StatusBadge label="Recent activity" value="No suspicious logins" />
-        </div>
-      </div>
-
-      <div className="ide-surface p-5">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <div className="text-sm uppercase tracking-[0.24em] text-[var(--muted)]">Security actions</div>
-            <p className="mt-2 text-[var(--text)] text-sm">Review and update your account protections.</p>
-          </div>
-          <button className="ide-button">Manage settings</button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function DetailCard({ title, value }) {
-  return (
-    <div className="ide-surface min-h-28 p-4">
-      <div className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">{title}</div>
-      <div className="mt-3 text-base font-semibold text-[var(--text)]">{value}</div>
-    </div>
-  )
-}
-
-function StatusBadge({ label, value }) {
-  return (
-    <div className="ide-surface px-4 py-4">
-      <div className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">{label}</div>
-      <div className="mt-2 text-sm font-medium text-[var(--text)]">{value}</div>
-    </div>
-  )
-}
-
-function ApiKeyItem({ name, created, status }) {
-  const statusClass = status === 'Active'
-    ? 'bg-[var(--accent-soft)] text-[var(--text)]'
-    : 'bg-[var(--panel)] text-[var(--muted)]'
-
-  return (
-    <div className="ide-surface flex items-center justify-between gap-4 p-4">
-      <div>
-        <div className="font-semibold text-[var(--text)]">{name}</div>
-        <div className="text-sm text-[var(--muted)]">Created {created}</div>
-      </div>
-      <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusClass}`}>{status}</span>
-    </div>
-  )
-}
+function DetailRow({ label, value }) { return <div className="ide-surface flex items-center justify-between px-4 py-3"><span className="text-sm text-[var(--muted)]">{label}</span><span className="text-sm font-medium">{value}</span></div> }

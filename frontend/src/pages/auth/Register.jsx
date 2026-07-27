@@ -1,13 +1,14 @@
-import React, { useState } from 'react'
+﻿import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import PrimaryButton from '../../components/ui/PrimaryButton'
-import { register as registerUser, startOAuth } from '../../services/authService'
+import { register as registerUser } from '../../services/authService'
 
 export default function Register() {
   const { register, handleSubmit, watch, reset, formState: { errors } } = useForm()
   const [message, setMessage] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+  const navigate = useNavigate()
 
   async function onSubmit(data) {
     setMessage(null)
@@ -16,7 +17,7 @@ export default function Register() {
     try {
       await registerUser({ username: data.username, email: data.email, password: data.password })
       reset()
-      setMessage({ type: 'success', text: 'Account created successfully. You can now sign in.' })
+      navigate('/login', { state: { message: 'Account created. Check your email to verify it before signing in.' } })
     } catch (error) {
       const detail = error.response?.data?.detail
       setMessage({
@@ -29,7 +30,7 @@ export default function Register() {
   }
 
   function handleOAuth(provider) {
-    startOAuth(provider.toLowerCase())
+    setMessage({ type: 'error', text: provider + ' sign-in is coming soon.' })
   }
 
   return (
@@ -170,3 +171,5 @@ function MicrosoftIcon() {
     </svg>
   )
 }
+
+

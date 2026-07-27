@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+﻿import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link } from 'react-router-dom'
 import PrimaryButton from '../../components/ui/PrimaryButton'
@@ -32,7 +32,7 @@ export default function ForgotPassword() {
       <div className="ide-card w-full max-w-md p-8">
         <div className="mb-8 text-center">
           <div className="font-heading text-3xl font-semibold text-[var(--text)]">Reset your password</div>
-          <p className="text-[var(--muted)] mt-2">Enter your email and we�ll send you instructions to reset your password.</p>
+          <p className="text-[var(--muted)] mt-2">Enter your email and we’ll send you instructions to reset your password.</p>
         </div>
 
         {message && (

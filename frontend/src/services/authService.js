@@ -1,40 +1,12 @@
-import axios from 'axios'
-
-const api = axios.create({
-  baseURL: 'http://localhost:8000',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-})
-
-export async function login({ email, password }) {
-  return api.post('/login', { email, password })
+﻿import axios from 'axios'
+const api = axios.create({ baseURL: 'http://localhost:8000', headers: { 'Content-Type': 'application/json' } })
+const authConfig = () => {
+  const token = localStorage.getItem('access_token')
+  return token ? { headers: { Authorization: `Bearer ${token}` } } : {}
 }
-
-export async function register({ username, email, password }) {
-  return api.post('/register', { username, email, password })
-}
-
-export async function logout() {
-  return api.post('/auth/logout')
-}
-
-export async function forgotPassword({ email }) {
-  return api.post('/forgot-password', { email })
-}
-
-export async function resetPassword({ token, password }) {
-  return api.post('/reset-password', { token, password })
-}
-
-export function startOAuth(provider) {
-  window.location.assign(api.defaults.baseURL + '/oauth/' + provider + '/authorize')
-}
-
-export async function googleLogin({ accessToken }) {
-  return api.post('/auth/google', { access_token: accessToken })
-}
-
-export async function githubLogin({ accessToken }) {
-  return api.post('/auth/github', { access_token: accessToken })
-}
+export const login = ({ email, password }) => api.post('/login', { email, password })
+export const register = ({ username, email, password }) => api.post('/register', { username, email, password })
+export const forgotPassword = ({ email }) => api.post('/forgot-password', { email })
+export const resetPassword = ({ token, password }) => api.post('/reset-password', { token, password })
+export const getCurrentUser = () => api.get('/auth/me', authConfig())
+export const updateCurrentUser = (payload) => api.patch('/auth/me', payload, authConfig())

@@ -1,12 +1,13 @@
-import React, { useState } from 'react'
+﻿import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import PrimaryButton from '../../components/ui/PrimaryButton'
 import { resetPassword } from '../../services/authService'
 
 export default function ResetPassword() {
   const { register, handleSubmit, watch, reset, formState: { errors } } = useForm()
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const [message, setMessage] = useState(null)
   const [submitting, setSubmitting] = useState(false)
 

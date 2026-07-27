@@ -1,42 +1,24 @@
-import React, { useEffect, useState } from 'react'
+﻿import React, { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import PrimaryButton from '../../components/ui/PrimaryButton'
 import { useAuth } from '../../auth/AuthProvider'
-import { login as loginUser, startOAuth } from '../../services/authService'
+import { login as loginUser } from '../../services/authService'
 
 export default function Login() {
   const { register, handleSubmit, formState: { errors } } = useForm()
   const navigate = useNavigate()
+  const location = useLocation()
   const { login } = useAuth()
   const [message, setMessage] = useState(null)
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    const callback = new URLSearchParams(window.location.hash.slice(1))
-    const accessToken = callback.get('access_token')
-    const userData = callback.get('user')
-    const oauthError = new URLSearchParams(window.location.search).get('oauth_error')
+    const verification = new URLSearchParams(location.search).get('verification')
+    const notice = location.state?.message || (verification === 'success' ? 'Email verified. You can now sign in.' : verification === 'error' ? 'Verification link is invalid or expired.' : null)
+    if (notice) setMessage({ type: verification === 'error' ? 'error' : 'success', text: notice })
+  }, [location])
 
-    if (accessToken && userData) {
-      try {
-        const user = JSON.parse(userData)
-        localStorage.setItem('access_token', accessToken)
-        localStorage.setItem('auth_user', JSON.stringify(user))
-        login(user)
-        window.history.replaceState({}, document.title, '/login')
-        navigate('/dashboard')
-        return
-      } catch {
-        setMessage({ type: 'error', text: 'OAuth authentication response was invalid.' })
-      }
-    }
-
-    if (oauthError) {
-      setMessage({ type: 'error', text: oauthError })
-      window.history.replaceState({}, document.title, '/login')
-    }
-  }, [login, navigate])
 
   async function onSubmit(data) {
     setMessage(null)
@@ -58,7 +40,7 @@ export default function Login() {
     }
   }
   function handleOAuth(provider) {
-    startOAuth(provider.toLowerCase())
+    setMessage({ type: 'error', text: provider + ' sign-in is coming soon.' })
   }
 
   return (
@@ -134,7 +116,7 @@ export default function Login() {
         </form>
 
         <div className="mt-8 text-center text-[var(--muted)] text-sm">
-          Don’t have an account? <Link to="/register" className="text-[var(--accent)] hover:text-[var(--accent-strong)]">Register</Link>
+          Donâ€™t have an account? <Link to="/register" className="text-[var(--accent)] hover:text-[var(--accent-strong)]">Register</Link>
         </div>
       </div>
     </div>
@@ -183,3 +165,5 @@ function MicrosoftIcon() {
     </svg>
   )
 }
+
+
