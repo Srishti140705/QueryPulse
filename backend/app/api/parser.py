@@ -5,6 +5,8 @@ from typing import Any, Dict, List, Optional
 import sqlglot
 from sqlglot import exp
 
+from app.api.statement import classify_statement
+
 
 class SQLParser:
     """Parse SQL statements and extract common query components."""
@@ -22,8 +24,9 @@ class SQLParser:
         dialect_name = {"postgresql": "postgres", "mariadb": "mysql"}.get(dialect or "", dialect)
         self._expression = sqlglot.parse_one(self._query, read=dialect_name)
 
+        statement = classify_statement(self._query, self._expression)
         return {
-            "query_type": self.get_query_type(),
+            **statement,
             "tables": self.get_tables(),
             "columns": self.get_columns(),
             "where_conditions": self.get_where_conditions(),
@@ -38,7 +41,7 @@ class SQLParser:
         if self._expression is None:
             raise ValueError("No SQL query has been parsed yet.")
 
-        return self._expression.key.upper()
+        return classify_statement(self._query or "", self._expression)["query_type"]
 
     def get_tables(self) -> List[str]:
         if self._expression is None:

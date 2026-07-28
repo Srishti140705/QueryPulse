@@ -1,4 +1,4 @@
-# QueryPulse
+﻿# QueryPulse
 
 A modern SQL developer workspace for writing, analyzing, optimizing, and managing SQL queries.
 
@@ -105,28 +105,28 @@ Unlike traditional SQL editors, QueryPulse focuses on improving developer produc
 
 ```text
 QueryPulse/
-│
-├── backend/
-│   ├── app/
-│   │   ├── api/
-│   │   ├── main.py
-│   │   ├── database.py
-│   │   └── logger.py
-│   ├── tests/
-│   └── .env.example
-│
-├── frontend/
-│   ├── src/
-│   │   ├── auth/
-│   │   ├── components/
-│   │   ├── pages/
-│   │   ├── services/
-│   │   ├── styles/
-│   │   └── theme/
-│   ├── package.json
-│   └── vite.config.js
-│
-└── README.md
+â”‚
+â”œâ”€â”€ backend/
+â”‚   â”œâ”€â”€ app/
+â”‚   â”‚   â”œâ”€â”€ api/
+â”‚   â”‚   â”œâ”€â”€ main.py
+â”‚   â”‚   â”œâ”€â”€ database.py
+â”‚   â”‚   â””â”€â”€ logger.py
+â”‚   â”œâ”€â”€ tests/
+â”‚   â””â”€â”€ .env.example
+â”‚
+â”œâ”€â”€ frontend/
+â”‚   â”œâ”€â”€ src/
+â”‚   â”‚   â”œâ”€â”€ auth/
+â”‚   â”‚   â”œâ”€â”€ components/
+â”‚   â”‚   â”œâ”€â”€ pages/
+â”‚   â”‚   â”œâ”€â”€ services/
+â”‚   â”‚   â”œâ”€â”€ styles/
+â”‚   â”‚   â””â”€â”€ theme/
+â”‚   â”œâ”€â”€ package.json
+â”‚   â””â”€â”€ vite.config.js
+â”‚
+â””â”€â”€ README.md
 ```
 
 ---
@@ -139,7 +139,7 @@ QueryPulse/
 git clone https://github.com/Kaviiik/QueryPulse.git
 ```
 
-## 2️. Navigate to the project
+## 2ï¸. Navigate to the project
 
 ```bash
 cd QueryPulse
@@ -280,3 +280,7 @@ LinkedIn: *(Add your LinkedIn profile URL here)*
 ---
 
 Thank you for visiting this repository. Feedback, suggestions, and contributions are always welcome.
+## Local AI (Ollama)
+
+Install Ollama, then run ollama pull qwen2.5-coder:3b. Start Ollama before starting QueryPulse. The backend uses AI_PROVIDER=ollama, OLLAMA_BASE_URL=http://127.0.0.1:11434, and OLLAMA_MODEL=qwen2.5-coder:3b.
+

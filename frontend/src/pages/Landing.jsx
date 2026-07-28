@@ -23,7 +23,7 @@ export default function Landing() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <Link to={isAuthenticated ? '/dashboard' : '/register'} className="ide-button-primary h-12 px-6">
+              <Link to={isAuthenticated ? '/editor' : '/register'} className="ide-button-primary h-12 px-6">
                 {isAuthenticated ? 'Continue to workspace' : 'Start a free trial'}
               </Link>
               <a href="#features" className="ide-button h-12 px-6">

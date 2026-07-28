@@ -1,9 +1,10 @@
 ﻿from fastapi.middleware.cors import CORSMiddleware
 from app.database import close_connection, get_connection, get_sqlalchemy_engine
-from app.models import Base, User
+from app.models import Base, User, UserQuery
 from app.api.parser import SQLParser
 from app.api.analyzer import QueryAnalyzer
 from app.api.query_executor import QueryExecutor
+from app.api.statement import classify_statement, operation_plan
 
 from pydantic import BaseModel, field_validator
 from typing import Literal
@@ -58,6 +59,10 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token", headers={"WWW-Authenticate": "Bearer"})
 from app.api.connections import router as connections_router
 app.include_router(connections_router)
+from app.api.ai import router as ai_router
+app.include_router(ai_router)
+from app.api.workspace import ensure_query_columns, router as workspace_router
+app.include_router(workspace_router)
 
 
 
@@ -176,6 +181,7 @@ class ResetPasswordRequest(BaseModel):
 class ProfileUpdateRequest(BaseModel):
     username: str | None = None
     password: str | None = None
+    current_password: str | None = None
 
     @field_validator("username")
     @classmethod
@@ -284,6 +290,8 @@ def update_profile(request: ProfileUpdateRequest, current_user: dict = Depends(g
                 raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Username is already registered")
             user.username = request.username
         if request.password:
+            if not request.current_password or not bcrypt.checkpw(request.current_password.encode("utf-8"), user.password_hash.encode("utf-8")):
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Your current password is incorrect")
             user.password_hash = bcrypt.hashpw(request.password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
         session.commit()
         session.refresh(user)
@@ -331,19 +339,92 @@ def execute_query(request: QueryRequest, current_user: dict = Depends(get_curren
     executor = QueryExecutor(request.database)
     try:
         parsed = parser.parse(request.query, dialect=request.database)
-        qtype = (parsed.get("query_type") or "").upper()
-    except Exception:
-        qtype = request.query.strip().split()[0].upper() if request.query and request.query.strip() else ""
+    except Exception as exc:
+        parsed = classify_statement(request.query)
+        if parsed["query_type"] in {"UNKNOWN", "COMMAND"}:
+            return {"error": f"SQL syntax or statement recognition failed: {exc}"}
     try:
-        if qtype == "SELECT":
-            result = executor.execute_select(request.query)
-        elif qtype in {"INSERT", "UPDATE", "DELETE"}:
-            result = executor.execute_write(request.query)
+        result = executor.execute(request.query, parsed)
+        reasons = []
+        if result.get("error"):
+            reasons.append(f"Execution error: {result['error'][:180]}")
         else:
-            return {"error": f"Unsupported or unrecognized query type: {qtype}"}
-        return {"query": request.query, "result": result}
+            if (result.get("row_count") or 0) >= 1000:
+                reasons.append("Large result set")
+            if parsed.get("query_type") in {"SELECT", "UPDATE", "DELETE"}:
+                plan = executor.explain_query(request.query.rstrip().rstrip(";"))
+                if not plan.get("error"):
+                    steps = plan.get("steps") or []
+                    if any(step.get("access_type") == "ALL" for step in steps):
+                        reasons.append("Full-table scan")
+                    if any(step.get("access_type") == "ALL" and not step.get("key") for step in steps):
+                        reasons.append("No index selected")
+                    extras = " ".join(str(step.get("extra") or "").lower() for step in steps)
+                    if "filesort" in extras:
+                        reasons.append("Filesort")
+                    if "temporary" in extras:
+                        reasons.append("Temporary table")
+                    if len(steps) >= 3:
+                        reasons.append("Expensive multi-table plan")
+        if not reasons:
+            elapsed = result.get("execution_time_ms") or 0
+            reasons.append("No obvious bottleneck" if elapsed < 200 else "Review data volume and indexes")
+        reasons = list(dict.fromkeys(reasons))[:3]
+        result["performance_reasons"] = reasons
+
+        try:
+            engine = get_sqlalchemy_engine()
+            ensure_query_columns(engine)
+            with Session(engine) as session:
+                record = UserQuery(
+                    user_id=int(current_user["sub"]),
+                    sql=request.query[:20000],
+                    name=f"{parsed.get('query_type') or 'SQL'} execution",
+                    query_type=parsed.get("query_type") or "SQL",
+                    connection_name=request.database,
+                    execution_time_ms=result.get("execution_time_ms"),
+                    row_count=result.get("row_count") or 0,
+                    performance_reason=" • ".join(reasons),
+                    status="error" if result.get("error") else "success",
+                )
+                session.add(record)
+                session.commit()
+                session.refresh(record)
+                result["history_record"] = {
+                    "id": record.id,
+                    "sql": record.sql,
+                    "query_type": record.query_type,
+                    "execution_time_ms": record.execution_time_ms,
+                    "row_count": record.row_count,
+                    "performance_reason": record.performance_reason,
+                    "status": record.status,
+                    "created_at": record.created_at,
+                }
+        except Exception:
+            result["history_warning"] = "The query ran, but its performance record could not be saved."
+        return {"query": request.query, "parsed": parsed, "result": result}
     except Exception as e:
         return {"error": str(e)}
+
+
+@app.post("/execution-plan")
+def execution_plan(request: QueryRequest, current_user: dict = Depends(get_current_user)):
+    parser = SQLParser()
+    try:
+        parsed = parser.parse(request.query, dialect=request.database)
+    except Exception as exc:
+        parsed = classify_statement(request.query)
+        if parsed["query_type"] in {"UNKNOWN", "COMMAND"}:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"SQL syntax error: {exc}")
+        parsed.update({"tables": [], "columns": [], "where_conditions": [], "joins": [], "group_by": [], "order_by": [], "limit": None, "aliases": {}})
+
+    if parsed.get("supports_native_explain"):
+        plan = QueryExecutor(request.database).explain_query(request.query.rstrip().rstrip(";"))
+    else:
+        plan = operation_plan(parsed)
+    if plan.get("error"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=plan["error"])
+    return {"query": request.query, "parsed": parsed, "plan": plan}
 
 
 @app.get("/")
@@ -374,8 +455,17 @@ def analyze_query(request: QueryRequest, current_user: dict = Depends(get_curren
     parser = SQLParser()
     try:
         parsed = parser.parse(request.query, dialect=request.database)
-        return {"parsed": parsed, "analysis": QueryAnalyzer(parsed).analyze()}
+        from app.api.ai import active_schema_context, deterministic_review, owner_id
+        static_analysis = deterministic_review(
+            request.query,
+            request.database,
+            active_schema_context(owner_id(current_user)),
+        )
+        return {
+            "parsed": parsed,
+            "analysis": QueryAnalyzer(parsed).analyze(),
+            "static_analysis": static_analysis,
+        }
     except Exception as e:
         return {"error": str(e)}
-
 

@@ -25,3 +25,12 @@ export const analyzeQuery = async (query, database = "mysql") => {
 
   return response.data;
 };
+
+export const getExecutionPlan = async (query, database = "mysql") => {
+  const response = await API.post("/execution-plan", {
+    query,
+    database,
+  }, authenticatedRequest());
+
+  return response.data;
+};

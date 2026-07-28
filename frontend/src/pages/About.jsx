@@ -1,26 +1,21 @@
 import React from 'react'
 
 export default function About() {
-  return (
-    <div className="mx-auto max-w-5xl">
-      <section className="ide-card ide-fade-in p-6 sm:p-8">
-        <p className="font-code text-xs uppercase tracking-[0.28em] text-[var(--accent-soft)]">About</p>
-        <h1 className="font-heading mt-3 text-3xl font-semibold text-[var(--text)]">About QueryPulse</h1>
-        <p className="mt-4 max-w-3xl text-sm leading-7 text-[var(--muted)]">
-          QueryPulse is a lightweight SQL developer dashboard focused on making it easier to write, analyze, and optimize SQL queries. This UI is a prototype built with React, Vite, and Tailwind CSS.
-        </p>
-
-        <div className="mt-8 grid gap-4 sm:grid-cols-2">
-          <div className="ide-surface min-h-36 p-5">
-            <h2 className="font-heading text-lg font-semibold text-[var(--text)]">Design</h2>
-            <p className="mt-3 text-sm leading-6 text-[var(--muted)]">A dark purple IDE interface with compact density, code-first typography, and violet action states.</p>
-          </div>
-          <div className="ide-surface min-h-36 p-5">
-            <h2 className="font-heading text-lg font-semibold text-[var(--text)]">Focus</h2>
-            <p className="mt-3 text-sm leading-6 text-[var(--muted)]">Query composition, execution feedback, reusable history, and professional data-table ergonomics.</p>
-          </div>
+  return <div className="about-pixel-page">
+    <main className="about-content">
+      <section className="about-intro">
+        <div><p>ABOUT</p><h1>About QueryPulse</h1><article>QueryPulse is an AI-assisted SQL workspace designed to make database work simpler, faster, and more organized. It brings query writing, execution, analysis, database connections, history, and AI assistance together in one place.</article></div>
+        <div className="about-hero-art" aria-hidden="true">
+          <span className="about-code">&lt;/&gt;</span>
+          <div className="about-disks"><i/><i/><i/></div>
+          <div className="about-monitor"><b/><b/><b/><b/></div>
         </div>
       </section>
-    </div>
-  )
+      <section className="about-cards">
+        <article className="about-card features"><span>★</span><div><h2>Core Features</h2><p>SQL editor, result tables, query history, saved connections, execution plans, static analysis, charts, and AI-powered SQL assistance.</p></div></article>
+        <article className="about-card goal"><span>◉</span><div><h2>Project Goal</h2><p>To create an approachable and visually engaging SQL workspace that helps users understand, improve, and manage their queries more confidently.</p></div></article>
+      </section>
+      <section className="about-tech"><span className="about-chip">▣</span><div><h2>Technology</h2><div className="about-tech-list"><b>React</b><b>Vite</b><b>FastAPI</b><b>MySQL</b><b>Ollama</b></div></div></section>
+    </main>
+  </div>
 }

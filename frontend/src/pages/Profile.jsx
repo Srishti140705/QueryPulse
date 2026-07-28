@@ -1,71 +1,48 @@
-﻿import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { getCurrentUser, updateCurrentUser } from '../services/authService'
 import { useAuth } from '../auth/AuthProvider'
-import PrimaryButton from '../components/ui/PrimaryButton'
 
 export default function Profile() {
   const { user, login } = useAuth()
   const [profile, setProfile] = useState(user)
   const [message, setMessage] = useState(null)
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm()
+  const [shown, setShown] = useState({ current: false, password: false, confirm: false })
+  const { register, handleSubmit, reset, watch, formState: { errors, isSubmitting } } = useForm()
 
   useEffect(() => {
-    getCurrentUser().then(({ data }) => setProfile(data)).catch(() => setMessage({ type: 'error', text: 'Unable to load your profile.' }))
+    const previousScrollRestoration = window.history.scrollRestoration
+    window.history.scrollRestoration = 'manual'
+    window.scrollTo(0, 0)
+    document.documentElement.scrollTop = 0
+    document.body.scrollTop = 0
+    return () => { window.history.scrollRestoration = previousScrollRestoration }
   }, [])
+
+  useEffect(() => {
+    getCurrentUser().then(({ data }) => { setProfile(data); reset({ username: data.username }) }).catch(() => setMessage({ type: 'error', text: 'Unable to load your profile.' }))
+  }, [reset])
 
   async function onSubmit(data) {
     setMessage(null)
+    const changingPassword = Boolean(data.password || data.current_password || data.confirm_password)
+    if (changingPassword && (!data.current_password || !data.password || !data.confirm_password)) return setMessage({ type: 'error', text: 'Fill in all three password fields to change your password.' })
     const payload = {}
-    if (data.username?.trim()) payload.username = data.username.trim()
-    if (data.password) payload.password = data.password
-    if (!Object.keys(payload).length) return setMessage({ type: 'error', text: 'Enter a username or a new password.' })
+    if (data.username?.trim() && data.username.trim() !== profile?.username) payload.username = data.username.trim()
+    if (changingPassword) { payload.password = data.password; payload.current_password = data.current_password }
+    if (!Object.keys(payload).length) return setMessage({ type: 'error', text: 'There are no changes to save.' })
     try {
       const { data: updated } = await updateCurrentUser(payload)
-      localStorage.setItem('auth_user', JSON.stringify(updated))
-      setProfile(updated)
-      login(updated)
-      reset()
-      setMessage({ type: 'success', text: 'Profile updated successfully.' })
-    } catch (error) {
-      setMessage({ type: 'error', text: error.response?.data?.detail || 'Unable to update your profile.' })
-    }
+      localStorage.setItem('auth_user', JSON.stringify(updated)); setProfile(updated); login(updated)
+      reset({ username: updated.username }); setMessage({ type: 'success', text: 'Profile updated successfully.' })
+    } catch (error) { setMessage({ type: 'error', text: error.response?.data?.detail || 'Unable to update your profile.' }) }
   }
 
-  const joined = profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : '—'
-  const initial = profile?.username?.slice(0, 2).toUpperCase() || 'QP'
-
-  return (
-    <div className="bg-[var(--bg)] text-[var(--text)]">
-      <div className="mx-auto max-w-7xl">
-        <div className="ide-card mb-6 p-6 sm:p-8">
-          <div className="flex flex-col gap-8 xl:flex-row xl:items-center xl:justify-between">
-            <div>
-              <p className="font-code text-xs uppercase tracking-[0.28em] text-[var(--accent-soft)]">User profile</p>
-              <h1 className="font-heading mt-3 text-4xl font-semibold">Account dashboard</h1>
-              <p className="mt-3 max-w-2xl text-[var(--muted)]">Manage your account details and security settings.</p>
-            </div>
-            <div className="ide-surface px-6 py-5 text-sm text-[var(--text)]">Joined<div className="mt-2 text-2xl font-semibold">{joined}</div></div>
-          </div>
-        </div>
-        <div className="grid gap-6 xl:grid-cols-[320px_1fr]">
-          <section className="ide-card space-y-6 p-6">
-            <div className="flex items-center gap-4"><div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--accent)] to-[var(--accent-strong)] font-heading text-2xl font-semibold">{initial}</div><div><div className="text-lg font-semibold">{profile?.username || 'Loading...'}</div><div className="text-sm text-[var(--muted)]">QueryPulse user</div></div></div>
-            <div className="space-y-4"><DetailRow label="Email" value={profile?.email || '—'} /><DetailRow label="Verified" value={profile?.email_verified ? 'Verified' : 'Pending verification'} /><DetailRow label="Created" value={joined} /></div>
-          </section>
-          <section className="ide-card p-6">
-            <p className="text-sm uppercase tracking-[0.24em] text-[var(--muted)]">Account settings</p>
-            <h2 className="mt-3 text-xl font-semibold">Update profile</h2>
-            {message && <div className={`mt-5 rounded-xl border px-4 py-3 text-sm ${message.type === 'success' ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-200' : 'border-rose-400/20 bg-rose-400/10 text-rose-200'}`}>{message.text}</div>}
-            <form onSubmit={handleSubmit(onSubmit)} className="mt-6 max-w-xl space-y-5">
-              <div><label className="block text-sm font-medium">Username</label><input defaultValue={profile?.username || ''} {...register('username', { maxLength: { value: 50, message: 'Maximum 50 characters' } })} className="mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 outline-none focus:border-[var(--accent)]" />{errors.username && <p className="mt-2 text-xs text-red-400">{errors.username.message}</p>}</div>
-              <div><label className="block text-sm font-medium">New password</label><input type="password" {...register('password', { minLength: { value: 8, message: 'Minimum 8 characters' } })} className="mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 outline-none focus:border-[var(--accent)]" />{errors.password && <p className="mt-2 text-xs text-red-400">{errors.password.message}</p>}</div>
-              <PrimaryButton type="submit" disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save changes'}</PrimaryButton>
-            </form>
-          </section>
-        </div>
-      </div>
-    </div>
-  )
+  const initials = profile?.username?.slice(0, 2).toUpperCase() || 'QP'
+  const joined = profile?.created_at ? new Date(profile.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
+  return <main className="profile-quest"><section className="profile-quest-hero"><div className="profile-emblem">{initials}</div><div><p className="profile-label">✦ Explorer profile ✦</p><h1>{profile?.username || 'Loading...'}</h1><p>Build better queries. Earn better insights.</p></div><div className="profile-level"><small>✦ SQL level 12 ✦</small><b>Query Explorer ✦</b><div><i /></div><span>820 / 1200 XP</span></div></section>
+    <div className="profile-quest-grid"><aside className="profile-quest-card"><p className="profile-label cyan">Account intel</p><Info icon="✉" label="Email" value={profile?.email || '—'} /><Info icon={profile?.email_verified ? '✓' : '!'} label="Verification" value={profile?.email_verified ? 'Verified account' : 'Pending verification'} /><Info icon="◷" label="Joined" value={joined} /></aside>
+      <section className="profile-quest-card profile-controls"><p className="profile-label pink">Profile controls</p><h2>Keep your account current</h2><p>Update your account details and keep your credentials secure.</p>{message && <div className={`profile-notice ${message.type}`}>{message.text}</div>}<form onSubmit={handleSubmit(onSubmit)} className="profile-form"><label>Username<div className="password-wrap username-wrap"><input {...register('username', { maxLength: { value: 50, message: 'Maximum 50 characters' } })} /></div>{errors.username && <em>{errors.username.message}</em>}</label><Password label="Current password" name="current_password" shown={shown.current} toggle={() => setShown(s => ({ ...s, current: !s.current }))} register={register} errors={errors} /><Password label="New password" name="password" shown={shown.password} toggle={() => setShown(s => ({ ...s, password: !s.password }))} register={register} rules={{ minLength: { value: 8, message: 'New password must be at least 8 characters' } }} errors={errors} /><Password label="Confirm password" name="confirm_password" shown={shown.confirm} toggle={() => setShown(s => ({ ...s, confirm: !s.confirm }))} register={register} rules={{ validate: value => !value || value === watch('password') || 'Passwords do not match' }} errors={errors} /><button disabled={isSubmitting} type="submit">▣ {isSubmitting ? 'Saving...' : 'Save changes'}</button></form></section></div></main>
 }
-function DetailRow({ label, value }) { return <div className="ide-surface flex items-center justify-between px-4 py-3"><span className="text-sm text-[var(--muted)]">{label}</span><span className="text-sm font-medium">{value}</span></div> }
+function Info({ icon, label, value }) { return <div className="profile-info"><i>{icon}</i><div><small>{label}</small><b>{value}</b></div></div> }
+function Password({ label, name, shown, toggle, register, rules, errors }) { return <label>{label}<div className="password-wrap"><input type={shown ? 'text' : 'password'} autoComplete={name === 'current_password' ? 'one-time-code' : 'new-password'} {...register(name, rules)} /><button type="button" aria-label={`${shown ? 'Hide' : 'Show'} ${label}`} onClick={toggle}>{shown ? '◉' : '◌'}</button></div>{errors?.[name] && <em>{errors[name].message}</em>}</label> }

@@ -1,17 +1,7 @@
-﻿import React from 'react'
-import { Navigate } from 'react-router-dom'
-import { useAuth } from './AuthProvider'
+import React from 'react'
 
+// Authentication pages deliberately remain visible on startup, even when an
+// earlier browser session exists. The workspace is still protected separately.
 export default function GuestRoute({ children }) {
-  const { isAuthenticated, loading } = useAuth()
-
-  if (loading) return null
-
-  if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />
-  }
-
   return children
 }
-
-

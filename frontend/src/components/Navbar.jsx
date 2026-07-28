@@ -5,7 +5,6 @@ import { useAuth } from '../auth/AuthProvider'
 
 const navItems = [
   { label: 'Home', to: '/' },
-  { label: 'Documentation', to: '/documentation' },
   { label: 'About', to: '/about' },
 ]
 
@@ -65,7 +64,6 @@ export default function Navbar() {
                   <div className="space-y-1">
                     <MenuItem to="/profile">My Profile</MenuItem>
                     <MenuItem to="/history">Query History</MenuItem>
-                    <MenuItem to="/settings">Settings</MenuItem>
                     <div className="my-2 border-t border-[var(--border)]" />
                     <MenuItem
                       onClick={() => {

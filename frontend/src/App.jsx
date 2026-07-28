@@ -1,16 +1,13 @@
 ﻿import React from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './auth/AuthProvider'
 import Navbar from './components/Navbar'
 import AuthenticatedLayout from './components/AuthenticatedLayout'
-import Landing from './pages/Landing'
 import QueryEditor from './pages/QueryEditor'
+import QuestWorkspace from './pages/QuestWorkspace'
 import History from './pages/History'
-import Documentation from './pages/Documentation'
 import About from './pages/About'
 import Profile from './pages/Profile'
-import Settings from './pages/Settings'
-import Dashboard from './pages/Dashboard'
 import DatabaseConnections from './pages/DatabaseConnections'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
@@ -24,11 +21,13 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-300">
-      {!isAuthenticated && <Navbar />}
+      {!isAuthenticated && !['/', '/login', '/register', '/about'].includes(window.location.pathname) && <Navbar />}
 
       <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/documentation" element={<Documentation />} />
+        <Route
+          path="/"
+          element={<Login />}
+        />
         <Route path="/about" element={<About />} />
         <Route
           path="/login"
@@ -69,11 +68,11 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/editor" element={<QueryEditor />} />
+          <Route path="/dashboard" element={<Navigate to="/editor" replace />} />
+          <Route path="/editor" element={<QuestWorkspace />} />
           <Route path="/history" element={<History />} />
           <Route path="/profile" element={<Profile />} />
-          <Route path="/settings" element={<Settings />} />`r`n          <Route path="/connections" element={<DatabaseConnections />} />
+          <Route path="/connections" element={<DatabaseConnections />} />
         </Route>
       </Routes>
     </div>

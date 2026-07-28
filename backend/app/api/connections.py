@@ -70,7 +70,11 @@ def open_connection(connection: SavedConnection):
     except InvalidToken:
         raise HTTPException(status_code=500, detail="Saved connection credentials cannot be decrypted")
     try:
-        return mysql.connector.connect(host=connection.host, port=connection.port, user=connection.username, password=password, database=connection.database_name, connection_timeout=10)
+        db = mysql.connector.connect(host=connection.host, port=connection.port, user=connection.username, password=password, database=connection.database_name, connection_timeout=10)
+        if not db.is_connected():
+            db.close()
+            raise HTTPException(status_code=400, detail="Unable to connect using these database details")
+        return db
     except mysql.connector.Error:
         raise HTTPException(status_code=400, detail="Unable to connect using these database details")
 
@@ -99,6 +103,16 @@ class ConnectionUpdate(BaseModel):
     username: Optional[str] = Field(default=None, min_length=1, max_length=255)
     password: Optional[str] = Field(default=None, min_length=1, max_length=512)
     database_name: Optional[str] = Field(default=None, min_length=1, max_length=255)
+
+    @field_validator("name", "host", "username", "database_name")
+    @classmethod
+    def strip_optional(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return value
+        value = value.strip()
+        if not value:
+            raise ValueError("This field cannot be blank")
+        return value
 
 
 @router.get("")
@@ -152,8 +166,9 @@ def delete_connection(connection_id: int, current_user: dict = Depends(get_curre
 def test_unsaved_connection(request: ConnectionInput, current_user: dict = Depends(get_current_user)):
     try:
         with closing(mysql.connector.connect(host=request.host, port=request.port, user=request.username, password=request.password, database=request.database_name, connection_timeout=10)) as connection:
-            if not connection.is_connected(): raise RuntimeError()
-    except mysql.connector.Error:
+            if not connection.is_connected():
+                raise RuntimeError()
+    except (mysql.connector.Error, RuntimeError):
         raise HTTPException(status_code=400, detail="Unable to connect using these database details")
     return {"message": "Connection successful"}
 
@@ -220,3 +235,17 @@ def preview_rows(table_name: str, current_user: dict = Depends(get_current_user)
             cursor.execute(f"SELECT * FROM `{table_name}` LIMIT 100")
             rows = cursor.fetchall(); columns = [description[0] for description in cursor.description]
     return {"table": table_name, "columns": columns, "rows": rows}
+
+
+def schema_summary_for_user(owner_id: int) -> str:
+    """Return only active-schema names/types; never credentials or data."""
+    engine = get_sqlalchemy_engine()
+    with Session(engine) as session:
+        connection = active_connection(session, owner_id)
+        with closing(open_connection(connection)) as db, closing(db.cursor(dictionary=True)) as cursor:
+            cursor.execute("SELECT TABLE_NAME, COLUMN_NAME, COLUMN_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = %s ORDER BY TABLE_NAME, ORDINAL_POSITION", (connection.database_name,))
+            rows = cursor.fetchall()
+    tables: dict[str, list[str]] = {}
+    for row in rows:
+        tables.setdefault(row["TABLE_NAME"], []).append(f'{row["COLUMN_NAME"]} {row["COLUMN_TYPE"]}')
+    return "; ".join(f"{name}({', '.join(columns[:20])})" for name, columns in list(tables.items())[:30])
