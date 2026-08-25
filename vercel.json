@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "cd frontend && npm ci && npm run build",
+  "outputDirectory": "frontend/dist",
+  "functions": {
+    "api/index.py": {
+      "excludeFiles": "{frontend/**,node_modules/**,tests/**,datasets/**,database/**,docker/**,docs/**}"
+    }
+  }
+}
