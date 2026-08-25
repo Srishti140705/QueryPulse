@@ -129,7 +129,11 @@ def close_connection(connection: Optional[mysql.connector.connection.MySQLConnec
 
 
 def get_sqlalchemy_engine():
-    """Return a SQLAlchemy engine using the existing MySQL configuration."""
+    """Return a SQLAlchemy engine using DATABASE_URL or legacy MySQL settings."""
+    database_url = os.getenv("DATABASE_URL")
+    if database_url:
+        return create_engine(database_url, pool_pre_ping=True)
+
     host = _get_env_var("MYSQL_HOST")
     user = _get_env_var("MYSQL_USER")
     password = _get_env_var("MYSQL_PASSWORD")

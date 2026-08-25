@@ -109,12 +109,12 @@ def send_email(recipient: str, subject: str, body: str) -> None:
 
 
 def frontend_url(path: str) -> str:
-    return os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/") + path
+    return os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/") + path
 
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[os.getenv("FRONTEND_URL", "http://localhost:3000")],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
